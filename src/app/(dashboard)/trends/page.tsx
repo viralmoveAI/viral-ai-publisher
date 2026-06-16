@@ -20,7 +20,7 @@ export default function TrendsPage() {
     platform: string;
   } | null>(null);
   
-  const [savingId, setSavingId] = useState<string | null>(null);
+
   const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearch = async (params: { niche: string; country: string; platform: string }) => {
@@ -32,7 +32,6 @@ export default function TrendsPage() {
   const handleSaveToggle = async (trend: Trend) => {
     if (!currentFilters) return;
     
-    setSavingId(trend.id);
     try {
       if (isTopicSaved(trend.id)) {
         await removeTopic(trend.id);
@@ -46,8 +45,6 @@ export default function TrendsPage() {
       }
     } catch (err) {
       console.error("Save toggle failed:", err);
-    } finally {
-      setSavingId(null);
     }
   };
 
@@ -128,7 +125,6 @@ export default function TrendsPage() {
                 trend={trend}
                 isSaved={isTopicSaved(trend.id)}
                 onSave={handleSaveToggle}
-                saving={savingId === trend.id}
               />
             ))}
           </div>

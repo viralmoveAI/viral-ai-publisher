@@ -1,19 +1,38 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bookmark, Sparkles, Copy, Check, ArrowUpRight, Plus } from "lucide-react";
+import { Bookmark, Sparkles, Copy, Check, ArrowUpRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Trend } from "@/lib/types/trend.types";
-import { Button } from "@/components/ui/button";
 
 interface TrendCardProps {
   trend: Trend;
   isSaved?: boolean;
   onSave?: (trend: Trend) => Promise<void>;
-  saving?: boolean;
 }
 
-export default function TrendCard({ trend, isSaved = false, onSave, saving = false }: TrendCardProps) {
+export default function TrendCard({ trend, isSaved = false, onSave }: TrendCardProps) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(isSaved);
+
+  const handleSave = async () => {
+    if (!onSave || saving || saved) return;
+    setSaving(true);
+    try {
+      await onSave(trend);
+      setSaved(true);
+      toast.success("Trend saved!", {
+        description: `"${trend.topic}" has been added to your saved topics.`,
+      });
+    } catch {
+      toast.error("Failed to save", {
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleCopyAngle = (angle: string, index: number) => {
     navigator.clipboard.writeText(angle);
@@ -56,19 +75,25 @@ export default function TrendCard({ trend, isSaved = false, onSave, saving = fal
           </h3>
         </div>
 
-        {/* Save Button */}
+        {/* Save / Bookmark Button */}
         {onSave && (
           <button
-            onClick={() => onSave(trend)}
-            disabled={saving}
-            className={`p-2.5 rounded-xl border transition-all duration-200 cursor-pointer disabled:opacity-50 ${
-              isSaved
+            onClick={handleSave}
+            disabled={saving || saved}
+            className={`p-2.5 rounded-xl border transition-all duration-200 cursor-pointer disabled:cursor-default ${
+              saved
                 ? "bg-violet-600/20 border-violet-500/30 text-violet-400"
+                : saving
+                ? "bg-white/[0.04] border-white/[0.08] text-slate-400"
                 : "bg-white/[0.02] border-white/[0.04] text-slate-400 hover:text-slate-200 hover:border-white/10"
             }`}
-            title={isSaved ? "Saved" : "Save Trend"}
+            title={saved ? "Saved" : saving ? "Saving…" : "Save Trend"}
           >
-            <Bookmark className={`size-4 ${isSaved ? "fill-violet-400" : ""}`} />
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Bookmark className={`size-4 transition-all duration-200 ${saved ? "fill-violet-400" : ""}`} />
+            )}
           </button>
         )}
       </div>
@@ -81,8 +106,8 @@ export default function TrendCard({ trend, isSaved = false, onSave, saving = fal
             <span className="text-base font-bold text-slate-200">{trend.trendScore}/100</span>
             {/* Progress bar */}
             <div className="w-24 h-1.5 bg-[#0A0A0F] rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-full" 
+              <div
+                className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-full"
                 style={{ width: `${trend.trendScore}%` }}
               />
             </div>
@@ -94,12 +119,12 @@ export default function TrendCard({ trend, isSaved = false, onSave, saving = fal
       <div className="space-y-3 pt-2">
         <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
           <Sparkles className="size-3 text-violet-400" />
-          AI Suggested Angles & Hooks:
+          AI Suggested Angles &amp; Hooks:
         </span>
         <div className="space-y-2">
           {trend.contentAngles.map((angle, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               className="flex justify-between items-start gap-3 p-3 rounded-lg border border-white/[0.02] bg-[#0A0A0F] text-sm text-slate-300 hover:text-slate-200 transition-colors group/angle"
             >
               <p className="leading-relaxed flex-1 select-all">{angle}</p>
