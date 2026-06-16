@@ -1,65 +1,114 @@
-import Image from "next/image";
+import React from "react";
+import Link from "next/link";
+import { Sparkles, ArrowRight, TrendingUp, ShieldCheck, Zap } from "lucide-react";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="relative min-h-screen bg-[#0A0A0F] text-slate-100 overflow-hidden flex flex-col font-sans">
+      {/* Background glow elements */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[350px] bg-gradient-to-b from-violet-600/10 via-transparent to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      
+      {/* Header */}
+      <header className="relative z-10 max-w-6xl mx-auto w-full flex items-center justify-between px-6 py-6 border-b border-white/[0.03]">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-xl bg-violet-600/20 border border-violet-500/30">
+            <Sparkles className="size-5 text-violet-400" />
+          </div>
+          <span className="font-extrabold text-xl bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            ViralAI <span className="text-violet-400">Publisher</span>
+          </span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/login" 
+            className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="text-sm font-medium bg-violet-600 hover:bg-violet-500 px-4 py-2 rounded-lg transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)] cursor-pointer"
           >
-            Documentation
-          </a>
+            Get started
+          </Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <main className="relative z-10 max-w-5xl mx-auto w-full px-6 flex-1 flex flex-col items-center justify-center text-center py-20 space-y-8">
+        {/* Glow badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/30 bg-violet-600/10 text-violet-300 text-xs font-semibold tracking-wide backdrop-blur-md animate-pulse">
+          <Sparkles className="size-3.5" />
+          AI-Powered Trend Intelligence
+        </div>
+        
+        {/* Heading */}
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none bg-gradient-to-b from-white via-slate-100 to-slate-400 bg-clip-text text-transparent max-w-3xl">
+          Discover Viral Trends & Publish Instantly
+        </h1>
+        
+        {/* Subheading */}
+        <p className="text-slate-400 max-w-xl text-base sm:text-lg leading-relaxed">
+          ViralAI Publisher is an all-in-one SaaS tailored for content creators. Track viral topics, plan social content, and execute posts on multiple social platforms with ease.
+        </p>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-md pt-4">
+          <Link
+            href="/register"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-[0_0_20px_rgba(124,58,237,0.4)] cursor-pointer group"
+          >
+            Start Free Trial
+            <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+          <Link
+            href="/login"
+            className="w-full sm:w-auto inline-flex items-center justify-center border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] text-slate-200 font-semibold py-3 px-8 rounded-xl transition-all cursor-pointer"
+          >
+            Learn More
+          </Link>
+        </div>
+
+        {/* Features Preview */}
+        <div className="grid gap-6 sm:grid-cols-3 w-full pt-16 text-left">
+          <div className="p-6 rounded-2xl border border-white/[0.03] bg-white/[0.01] hover:border-violet-500/20 transition-all duration-300">
+            <div className="p-2.5 rounded-xl bg-violet-600/10 border border-violet-500/20 w-fit mb-4 text-violet-400">
+              <TrendingUp className="size-5" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-100 mb-2">Trend Discovery</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Find viral opportunities across platforms customized for your niche, language, and country.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-white/[0.03] bg-white/[0.01] hover:border-violet-500/20 transition-all duration-300">
+            <div className="p-2.5 rounded-xl bg-violet-600/10 border border-violet-500/20 w-fit mb-4 text-violet-400">
+              <Zap className="size-5" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-100 mb-2">Instant Publishing</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Post your drafts directly to social media accounts without leaving the editor.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-white/[0.03] bg-white/[0.01] hover:border-violet-500/20 transition-all duration-300">
+            <div className="p-2.5 rounded-xl bg-violet-600/10 border border-violet-500/20 w-fit mb-4 text-violet-400">
+              <ShieldCheck className="size-5" />
+            </div>
+            <h3 className="font-bold text-lg text-slate-100 mb-2">Safe & Secure</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Official APIs and standard Firebase authentication keep your pages and tokens completely safe.
+            </p>
+          </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 max-w-6xl mx-auto w-full px-6 py-8 border-t border-white/[0.03] text-center text-xs text-slate-500">
+        &copy; {new Date().getFullYear()} ViralAI Publisher. All rights reserved.
+      </footer>
     </div>
   );
 }
