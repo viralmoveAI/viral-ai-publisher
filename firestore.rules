@@ -71,7 +71,13 @@ service cloud.firestore {
     // WORKSPACES COLLECTION
     // ─────────────────────────────────────────
     match /workspaces/{workspaceId} {
-      allow read: if isAuthenticated() && (isWorkspaceMember(workspaceId) || isPlatformAdmin());
+      // Owners can always read their workspace (needed for the workspaceId backfill query
+      // in AuthContext which runs before the membership doc is confirmed).
+      allow read: if isAuthenticated() && (
+        isWorkspaceMember(workspaceId) ||
+        isPlatformAdmin() ||
+        resource.data.ownerId == request.auth.uid
+      );
       // Anyone logged in can create a workspace (they automatically become the owner in the batch write)
       allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']);

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
-import { doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { doc, getDoc, getDocs, serverTimestamp, writeBatch, collection, query, where, updateDoc, limit } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
@@ -43,11 +43,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const userDoc = await getDoc(userDocRef);
           
           if (userDoc.exists()) {
-            setUserProfile(userDoc.data());
+            const existingProfile = userDoc.data();
+
+            // ── Backfill workspaceId for users registered before this field was added ──
+            if (!existingProfile.workspaceId) {
+              const wsQuery = query(
+                collection(db, "workspaces"),
+                where("ownerId", "==", currentUser.uid),
+                limit(1)
+              );
+              const wsSnap = await getDocs(wsQuery);
+              if (!wsSnap.empty) {
+                const foundId = wsSnap.docs[0].id;
+                await updateDoc(userDocRef, { workspaceId: foundId });
+                existingProfile.workspaceId = foundId;
+              }
+            }
+
+            setUserProfile(existingProfile);
           } else {
             // Scaffold user profile, default workspace, and workspace membership atomically client-side
             const batch = writeBatch(db);
-            
+
+            // 2. Default workspace — declared FIRST so newProfile can reference it
+            const workspaceId = `ws_${Math.random().toString(36).substring(2, 11)}`;
+
             // 1. User profile
             const newProfile = {
               uid: currentUser.uid,
@@ -56,12 +76,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               photoURL: currentUser.photoURL || null,
               plan: "free",
               role: "user",
+              workspaceId,          // now safe — declared above
               createdAt: serverTimestamp(),
             };
             batch.set(userDocRef, newProfile);
 
-            // 2. Default workspace
-            const workspaceId = `ws_${Math.random().toString(36).substring(2, 11)}`;
+            // 2. Default workspace (already declared above)
             const workspaceDocRef = doc(db, "workspaces", workspaceId);
             const namePrefix = currentUser.displayName || currentUser.email?.split("@")[0] || "My";
             const slug = `${namePrefix.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-workspace`;
