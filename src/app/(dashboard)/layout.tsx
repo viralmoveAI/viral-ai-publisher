@@ -14,7 +14,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading, logout } = useAuth();
+  const { user, userProfile, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -103,15 +103,36 @@ export default function DashboardLayout({
             Workspace: <span className="text-violet-400">Personal</span>
           </div>
 
-          {/* User profile dropdown / logout */}
-          <div className="flex items-center gap-4 ml-auto">
-            <div className="flex flex-col text-right">
+          {/* User profile link */}
+          <div className="flex items-center gap-3 ml-auto">
+            <div className="hidden md:flex flex-col text-right">
               <span className="text-sm font-semibold text-slate-200">
-                {user.displayName || user.email?.split("@")[0]}
+                {userProfile?.displayName || user.displayName || user.email?.split("@")[0]}
               </span>
-              <span className="text-xs text-slate-500 capitalize">{user.email}</span>
+              <span className="text-xs text-slate-500">{user.email}</span>
             </div>
-            
+
+            <Link href="/profile" title="Go to Profile">
+              {userProfile?.photoURL || user.photoURL ? (
+                <img
+                  src={userProfile?.photoURL || user.photoURL || ""}
+                  alt="Profile"
+                  className="size-9 rounded-full object-cover ring-2 ring-violet-500/30 ring-offset-1 ring-offset-[#13131A] hover:ring-violet-500/60 transition-all"
+                />
+              ) : (
+                <div className="size-9 rounded-full bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center ring-2 ring-violet-500/30 ring-offset-1 ring-offset-[#13131A] hover:ring-violet-500/60 transition-all cursor-pointer">
+                  <span className="text-xs font-bold text-white">
+                    {((userProfile?.displayName || user.displayName || user.email || "U"))
+                      .split(" ")
+                      .map((w: string) => w[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2)}
+                  </span>
+                </div>
+              )}
+            </Link>
+
             <button
               onClick={logout}
               className="md:hidden p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
