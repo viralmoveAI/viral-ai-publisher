@@ -19,14 +19,15 @@ interface MetricConfig {
   change: number; // % change vs prior period
 }
 
-// Generate mock time-series data based on published log history
+// Calculate real engagement metrics based on published log history
 function buildMetrics(logs: PublishingLog[]): MetricConfig[] {
   // Group logs by day (last 14 days)
   const now = Date.now();
   const DAY_MS = 86400000;
   const labels: string[] = [];
   const successByDay: number[] = [];
-  const failByDay: number[] = [];
+  const reachByDay: number[] = [];       // Sum of views/plays
+  const engagementByDay: number[] = [];  // Sum of likes + comments + shares
 
   for (let i = 13; i >= 0; i--) {
     const dayStart = now - i * DAY_MS;
@@ -43,18 +44,27 @@ function buildMetrics(logs: PublishingLog[]): MetricConfig[] {
     });
 
     successByDay.push(dayLogs.filter((l) => l.status === "success").length);
-    failByDay.push(dayLogs.filter((l) => l.status === "failed").length);
+
+    // Sum up real views/plays for reach
+    const dayViews = dayLogs.reduce((acc, curr) => acc + (curr.viewCount || 0), 0);
+    reachByDay.push(dayViews);
+
+    // Sum up likes, comments, and shares for engagement
+    const dayEngagements = dayLogs.reduce((acc, curr) => {
+      const engagements = (curr.likeCount || 0) + (curr.commentCount || 0) + (curr.shareCount || 0);
+      return acc + engagements;
+    }, 0);
+    engagementByDay.push(dayEngagements);
   }
 
-  // Simulate reach/engagement from publish count (mock formula for demo)
   const reachData: DataPoint[] = labels.map((label, i) => ({
     label,
-    value: successByDay[i] * (500 + Math.floor(Math.random() * 3500)),
+    value: reachByDay[i],
   }));
 
   const engagementData: DataPoint[] = labels.map((label, i) => ({
     label,
-    value: successByDay[i] * (20 + Math.floor(Math.random() * 250)),
+    value: engagementByDay[i],
   }));
 
   const publishData: DataPoint[] = labels.map((label, i) => ({
@@ -73,7 +83,7 @@ function buildMetrics(logs: PublishingLog[]): MetricConfig[] {
   return [
     {
       key: "reach",
-      label: "Estimated Reach",
+      label: "Reach / Views",
       color: "#8b5cf6",
       gradient: ["#8b5cf640", "#8b5cf600"],
       data: reachData,
@@ -82,7 +92,7 @@ function buildMetrics(logs: PublishingLog[]): MetricConfig[] {
     },
     {
       key: "engagement",
-      label: "Engagements",
+      label: "Engagements (Likes/Comments)",
       color: "#06b6d4",
       gradient: ["#06b6d440", "#06b6d400"],
       total: engagementData.reduce((a, c) => a + c.value, 0),

@@ -11,6 +11,7 @@ export interface PublishingLog {
   socialAccountId: string;
   accountName: string;        // Denormalized for display
   status: "success" | "failed" | "pending";
+  publishStatus?: "success" | "failed" | "processing"; // Detailed status (e.g. for TikTok async processing)
   platformPostId: string | null;   // ID assigned by the social platform
   platformPostUrl: string | null;  // Direct link to the live post
   errorCode: string | null;
@@ -19,6 +20,11 @@ export interface PublishingLog {
   completedAt: any | null;     // Firestore Timestamp
   durationMs: number | null;
   isMock: boolean;             // True when published via simulation mode
+  likeCount?: number;          // Likes count
+  commentCount?: number;       // Comments count
+  viewCount?: number;          // Views/Plays count
+  shareCount?: number;         // Shares count
+  lastSyncedAt?: any;          // Firestore Timestamp of last stats update
 }
 
 // ─── Workspace Stats (aggregated for dashboard) ───────────────────────────

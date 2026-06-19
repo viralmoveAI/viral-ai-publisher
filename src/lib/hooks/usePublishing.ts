@@ -77,6 +77,7 @@ export function usePublishing() {
       errorCode: string | null;
       errorMessage: string | null;
       durationMs: number;
+      publishStatus?: "success" | "failed" | "processing";
     };
 
     try {
@@ -125,6 +126,7 @@ export function usePublishing() {
       socialAccountId: account.accountId,
       accountName: account.accountName,
       status: result.success ? "success" : "failed",
+      publishStatus: result.success ? (result.publishStatus || "success") : "failed",
       platformPostId: result.platformPostId,
       platformPostUrl: result.platformPostUrl,
       errorCode: result.errorCode,
@@ -135,6 +137,13 @@ export function usePublishing() {
       isMock,
     });
 
+    // Trigger sync in the background so dashboard stays up to date
+    fetch("/api/analytics/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId }),
+    }).catch(console.error);
+
     return {
       success: result.success,
       errorMessage: result.errorMessage || undefined,
@@ -144,6 +153,13 @@ export function usePublishing() {
   // ─── Aggregate workspace stats ────────────────────────────────────────────
   const fetchStats = async (): Promise<WorkspaceStats> => {
     if (!workspaceId) return { savedTopicsCount: 0, draftCount: 0, publishedCount: 0, failedCount: 0, connectedAccountsCount: 0, recentLogs: [] };
+
+    // Trigger background sync when stats are requested to get fresh metrics
+    fetch("/api/analytics/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId }),
+    }).catch(console.error);
 
     // Posts stats
     const postsSnap = await getDocs(collection(db, "workspaces", workspaceId, "posts"));

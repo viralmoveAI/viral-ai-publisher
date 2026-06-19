@@ -7,6 +7,8 @@ export interface SocialAccount {
   accountName: string;             // Page name / channel name / username
   accountId: string;               // Platform-specific account ID
   accessToken: string;             // Long-lived access token
+  refreshToken?: string;           // Optional refresh token (used by YouTube/TikTok)
+  scopes?: string[];               // Optional array of authorized scopes
   tokenExpiresAt: any | null;      // Firestore Timestamp (null = non-expiring)
   profilePictureURL: string | null;
   followerCount: number | null;

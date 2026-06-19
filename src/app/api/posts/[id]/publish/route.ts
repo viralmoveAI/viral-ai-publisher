@@ -1,40 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { publishPhotoToFacebook, publishVideoToFacebook, publishTextToFacebook } from "@/lib/services/social/facebook.service";
+import { publishToInstagram } from "@/lib/services/social/instagram.service";
+import { publishVideoToTikTok } from "@/lib/services/social/tiktok.service";
+import { uploadVideoToYouTube } from "@/lib/services/social/youtube.service";
 
-// Helper: simulate Facebook Graph API call for real accounts
-async function publishToFacebook(
-  accessToken: string,
-  accountId: string,
-  caption: string,
-  mediaUrl: string | null
-): Promise<{ success: boolean; postId?: string; postUrl?: string; error?: string }> {
-  try {
-    const endpoint = `https://graph.facebook.com/v19.0/${accountId}/feed`;
-    const body: Record<string, string> = { message: caption, access_token: accessToken };
-    if (mediaUrl) body.link = mediaUrl;
-
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || data.error) {
-      return { success: false, error: data.error?.message || "Facebook API error" };
-    }
-
-    return {
-      success: true,
-      postId: data.id,
-      postUrl: `https://www.facebook.com/${data.id}`,
-    };
-  } catch (err: any) {
-    return { success: false, error: err.message || "Network error" };
-  }
-}
-
-// Helper: simulate publishing with realistic random outcomes
+// Helper: simulate publishing with realistic random outcomes (fallback/mock mode)
 async function simulatePublish(platform: string): Promise<{
   success: boolean;
   postId?: string;
@@ -43,11 +13,9 @@ async function simulatePublish(platform: string): Promise<{
   errorMessage?: string;
   durationMs: number;
 }> {
-  // Simulate network latency: 800ms – 2200ms
   const latency = 800 + Math.floor(Math.random() * 1400);
   await new Promise((resolve) => setTimeout(resolve, latency));
 
-  // 90% success rate
   const isSuccess = Math.random() > 0.1;
 
   if (isSuccess) {
@@ -60,7 +28,6 @@ async function simulatePublish(platform: string): Promise<{
     };
   }
 
-  // Realistic failure scenarios
   const failures = [
     { code: "RATE_LIMIT_EXCEEDED", message: "API rate limit exceeded. Please try again in 15 minutes." },
     { code: "INVALID_MEDIA_FORMAT", message: "The provided media URL is not accessible by the platform." },
@@ -80,7 +47,7 @@ export async function POST(
   try {
     const { id: postId } = await params;
     const body = await request.json();
-    const { socialAccountId, workspaceId, caption, mediaUrl, platform, accessToken, accountName, isMock } = body;
+    const { socialAccountId, workspaceId, caption, mediaUrl, mediaType, platform, accessToken, isMock } = body;
 
     if (!postId || !socialAccountId || !workspaceId || !platform) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -93,25 +60,95 @@ export async function POST(
       errorCode?: string;
       errorMessage?: string;
       durationMs?: number;
+      publishStatus?: "success" | "failed" | "processing";
     };
 
     if (isMock) {
       // Sandbox simulation
-      result = await simulatePublish(platform);
-    } else if (platform === "facebook" && accessToken) {
-      // Real Facebook Graph API
-      const fbResult = await publishToFacebook(accessToken, socialAccountId, caption || "", mediaUrl || null);
+      const mockResult = await simulatePublish(platform);
       result = {
-        success: fbResult.success,
-        postId: fbResult.postId,
-        postUrl: fbResult.postUrl,
-        errorCode: fbResult.error ? "GRAPH_API_ERROR" : undefined,
-        errorMessage: fbResult.error,
-        durationMs: Date.now() - startTime,
+        ...mockResult,
+        publishStatus: mockResult.success ? "success" : "failed",
       };
+    } else if (!accessToken) {
+      return NextResponse.json({ error: "Access token is missing for real integration" }, { status: 400 });
     } else {
-      // Platform not yet supported for real publishing — fallback to simulation
-      result = await simulatePublish(platform);
+      // Real API Integrations
+      const cleanPlatform = platform.toLowerCase();
+
+      if (cleanPlatform === "facebook") {
+        let fbRes;
+        if (mediaUrl && mediaType === "video") {
+          fbRes = await publishVideoToFacebook(socialAccountId, accessToken, mediaUrl, caption || "");
+        } else if (mediaUrl) {
+          fbRes = await publishPhotoToFacebook(socialAccountId, accessToken, mediaUrl, caption || "");
+        } else {
+          fbRes = await publishTextToFacebook(socialAccountId, accessToken, caption || "");
+        }
+
+        result = {
+          success: fbRes.success,
+          postId: fbRes.postId,
+          postUrl: fbRes.postUrl,
+          errorCode: fbRes.error ? "FACEBOOK_PUBLISH_ERROR" : undefined,
+          errorMessage: fbRes.error,
+          publishStatus: fbRes.success ? "success" : "failed",
+        };
+      } else if (cleanPlatform === "instagram") {
+        if (!mediaUrl) {
+          return NextResponse.json({ error: "Instagram requires an image or video" }, { status: 400 });
+        }
+        const igRes = await publishToInstagram(
+          socialAccountId,
+          accessToken,
+          mediaType === "video" ? "video" : "image",
+          mediaUrl,
+          caption || ""
+        );
+
+        result = {
+          success: igRes.success,
+          postId: igRes.postId,
+          postUrl: igRes.postUrl,
+          errorCode: igRes.error ? "INSTAGRAM_PUBLISH_ERROR" : undefined,
+          errorMessage: igRes.error,
+          publishStatus: igRes.success ? "success" : "failed",
+        };
+      } else if (cleanPlatform === "tiktok") {
+        if (!mediaUrl || mediaType !== "video") {
+          return NextResponse.json({ error: "TikTok content posting API requires a video file" }, { status: 400 });
+        }
+        const ttRes = await publishVideoToTikTok(socialAccountId, accessToken, mediaUrl, caption || "");
+        
+        result = {
+          success: ttRes.success,
+          postId: ttRes.publishId,
+          errorCode: ttRes.error ? "TIKTOK_PUBLISH_ERROR" : undefined,
+          errorMessage: ttRes.error,
+          publishStatus: ttRes.success ? "processing" : "failed",
+        };
+      } else if (cleanPlatform === "youtube") {
+        if (!mediaUrl || mediaType !== "video") {
+          return NextResponse.json({ error: "YouTube Data API requires a video file" }, { status: 400 });
+        }
+        const ytRes = await uploadVideoToYouTube(accessToken, mediaUrl, caption.substring(0, 100), caption);
+
+        result = {
+          success: ytRes.success,
+          postId: ytRes.postId,
+          postUrl: ytRes.postUrl,
+          errorCode: ytRes.error ? "YOUTUBE_PUBLISH_ERROR" : undefined,
+          errorMessage: ytRes.error,
+          publishStatus: ytRes.success ? "success" : "failed",
+        };
+      } else {
+        // Fallback simulation
+        const mockResult = await simulatePublish(platform);
+        result = {
+          ...mockResult,
+          publishStatus: mockResult.success ? "success" : "failed",
+        };
+      }
     }
 
     return NextResponse.json({
@@ -120,6 +157,7 @@ export async function POST(
       platformPostUrl: result.postUrl || null,
       errorCode: result.errorCode || null,
       errorMessage: result.errorMessage || null,
+      publishStatus: result.publishStatus || (result.success ? "success" : "failed"),
       durationMs: result.durationMs || Date.now() - startTime,
     });
   } catch (err: any) {
