@@ -5,10 +5,13 @@ import Link from "next/link";
 import { FileText, MonitorPlay, Pencil, Clock } from "lucide-react";
 import { Post } from "@/lib/types/post.types";
 import DeletePostDialog from "./DeletePostDialog";
+import PublishPostDialog from "./PublishPostDialog";
+import { useSocialAccounts } from "@/lib/hooks/useSocialAccounts";
 
 interface PostCardProps {
   post: Post;
   onDelete: (postId: string) => Promise<void>;
+  onPublishSuccess?: () => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -17,7 +20,8 @@ const STATUS_STYLES: Record<string, string> = {
   Failed:    "bg-red-500/10 border-red-500/20 text-red-400",
 };
 
-export default function PostCard({ post, onDelete }: PostCardProps) {
+export default function PostCard({ post, onDelete, onPublishSuccess }: PostCardProps) {
+  const { accounts } = useSocialAccounts();
   const createdDate = post.createdAt?.seconds
     ? new Date(post.createdAt.seconds * 1000).toLocaleDateString("en-US", {
         month: "short", day: "numeric", year: "numeric",
@@ -79,12 +83,21 @@ export default function PostCard({ post, onDelete }: PostCardProps) {
           <Clock className="size-3" />
           {createdDate}
         </span>
-        {post.hashtags?.length > 0 && (
-          <span className="text-violet-500/70 truncate max-w-[160px]">
-            {post.hashtags.slice(0, 3).join(" ")}
-            {post.hashtags.length > 3 && " …"}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {post.hashtags?.length > 0 && (
+            <span className="text-violet-500/70 truncate max-w-[100px]">
+              {post.hashtags.slice(0, 2).join(" ")}
+              {post.hashtags.length > 2 && " …"}
+            </span>
+          )}
+          {(post.status === "Draft" || post.status === "Failed") && accounts.length > 0 && (
+            <PublishPostDialog
+              post={post}
+              accounts={accounts}
+              onSuccess={onPublishSuccess}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
