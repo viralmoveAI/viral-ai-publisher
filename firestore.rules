@@ -118,9 +118,11 @@ service cloud.firestore {
       // Publishing Logs
       match /publishing_logs/{logId} {
         allow read: if isAuthenticated() && isWorkspaceMember(workspaceId);
-        // Direct writes are blocked; in Spark plan, client-side publishing creates logs
+        // Direct writes are allowed for workspace creators
         allow create: if isAuthenticated() && canEditWorkspace(workspaceId);
-        allow update, delete: if false;
+        // Allow updates to publishStatus, completedAt, and analytics counts
+        allow update: if isAuthenticated() && isWorkspaceMember(workspaceId);
+        allow delete: if false;
       }
 
       // Workspace Activity Audit Logs

@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, KeyboardEvent } from "react";
+import React, { useState, KeyboardEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, X, Hash, Link2, Image, Video, AlertCircle, Info, CloudOff } from "lucide-react";
+import { Loader2, X, Hash, UploadCloud, Image, Video, Film } from "lucide-react";
 import { toast } from "sonner";
 import { usePosts } from "@/lib/hooks/usePosts";
-import { usePostMedia } from "@/lib/hooks/usePostMedia";
 import { Post, PostFormData, SocialPlatform } from "@/lib/types/post.types";
 
 const PLATFORMS: SocialPlatform[] = ["TikTok", "Instagram", "YouTube", "LinkedIn", "Facebook"];
@@ -27,10 +26,12 @@ export default function PostForm({ existing }: PostFormProps) {
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Media URL hook
-  const { mediaURL, mediaType, urlError, handleChange: handleMediaChange, clear: clearMedia } = usePostMedia(
-    existing?.mediaURL ?? null
-  );
+  // Cloudinary media state
+  const [mediaURL, setMediaURL] = useState<string>(existing?.mediaURL ?? "");
+  const [mediaType, setMediaType] = useState<"image" | "video" | null>(existing?.mediaType ?? null);
+  const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Tag helpers ────────────────────────────────────────────────────────────
   const addTag = () => {
@@ -53,15 +54,83 @@ export default function PostForm({ existing }: PostFormProps) {
 
   const removeTag = (tag: string) => setHashtags((prev) => prev.filter((t) => t !== tag));
 
+  // ── Upload handler ─────────────────────────────────────────────────────────
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validation
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
+      toast.error("Unsupported file type", { description: "Please upload an image or a video." });
+      return;
+    }
+
+    setUploading(true);
+    const toastId = toast.loading("Uploading file to Cloudinary...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await res.json();
+      setMediaURL(data.url);
+      setMediaType(data.resourceType);
+      toast.success("File uploaded successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to upload file to Cloudinary", { id: toastId });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e.target.files[0]);
+    }
+  };
+
+  const clearMedia = () => {
+    setMediaURL("");
+    setMediaType(null);
+  };
+
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !caption.trim()) {
       toast.error("Title and caption are required.");
-      return;
-    }
-    if (urlError) {
-      toast.error("Please fix the media URL before saving.");
       return;
     }
 
@@ -73,7 +142,7 @@ export default function PostForm({ existing }: PostFormProps) {
         hashtags,
         platform,
         mediaURL: mediaURL.trim() || null,
-        mediaType: mediaURL.trim() ? mediaType : null,
+        mediaType,
       };
 
       if (isEditing && existing) {
@@ -174,83 +243,67 @@ export default function PostForm({ existing }: PostFormProps) {
         </div>
       </div>
 
-      {/* ── Media Section ──────────────────────────────────────────────────── */}
+      {/* ── Media Upload Section ───────────────────────────────────────────── */}
       <div className="space-y-3">
         <label className="block text-sm font-semibold text-slate-300 flex items-center gap-1.5">
-          <Link2 className="size-3.5 text-violet-400" />
-          Media URL
-          <span className="text-slate-500 font-normal">(optional)</span>
+          <UploadCloud className="size-3.5 text-violet-400" />
+          Media File
+          <span className="text-slate-500 font-normal">(Image or Video)</span>
         </label>
 
-        {/* Info banner — explains why direct upload is unavailable */}
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06]">
-          <CloudOff className="size-4 text-amber-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-amber-300">Direct file upload is not available</p>
-            <p className="text-xs text-amber-400/80 leading-relaxed">
-              This project runs on the Firebase Spark (free) plan which does not include Firebase Storage.
-              As a workaround, paste a publicly accessible link to your image or video below —
-              for example, a Cloudinary URL, Google Drive share link, or a direct CDN link.
-            </p>
-          </div>
-        </div>
-
-        {/* URL input */}
-        <div className="relative">
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
-            <Link2 className="size-4" />
-          </div>
-          <input
-            type="url"
-            value={mediaURL}
-            onChange={(e) => handleMediaChange(e.target.value)}
-            placeholder="https://example.com/your-image-or-video.jpg"
-            className={`w-full bg-[#0A0A0F] border rounded-xl pl-10 pr-10 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none transition-colors ${
-              urlError
-                ? "border-red-500/50 focus:border-red-500/60"
-                : mediaURL && !urlError
-                ? "border-emerald-500/40 focus:border-emerald-500/60"
-                : "border-[#1E1E2D] focus:border-violet-500/60"
-            }`}
-          />
-          {/* Clear button */}
-          {mediaURL && (
+        {mediaURL ? (
+          <div className="relative rounded-xl border border-[#1E1E2D] bg-[#0A0A0F] p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-12 rounded-lg bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20 shrink-0">
+                {mediaType === "video" ? <Film className="size-6" /> : <Image className="size-6" />}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-slate-400 font-medium truncate max-w-md">{mediaURL}</p>
+                <p className="text-[10px] text-emerald-400 font-semibold capitalize mt-0.5">{mediaType} Uploaded</p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={clearMedia}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
-              title="Clear URL"
+              className="text-slate-500 hover:text-white transition-colors p-1"
             >
-              <X className="size-4" />
+              <X className="size-5" />
             </button>
-          )}
-        </div>
-
-        {/* Validation error */}
-        {urlError && (
-          <div className="flex items-center gap-2 text-xs text-red-400">
-            <AlertCircle className="size-3.5 shrink-0" />
-            {urlError}
           </div>
-        )}
-
-        {/* Auto-detected media type badge */}
-        {mediaURL && !urlError && mediaType && (
-          <div className="flex items-center gap-2 text-xs text-emerald-400">
-            {mediaType === "image" ? (
-              <Image className="size-3.5 shrink-0" />
+        ) : (
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+              dragActive
+                ? "border-violet-500 bg-violet-500/5"
+                : "border-[#1E1E2D] bg-[#0A0A0F] hover:border-slate-700"
+            }`}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*,video/*"
+              className="hidden"
+            />
+            {uploading ? (
+              <div className="flex flex-col items-center justify-center">
+                <Loader2 className="size-8 animate-spin text-violet-500 mb-2" />
+                <p className="text-xs text-slate-400">Uploading to Cloudinary...</p>
+              </div>
             ) : (
-              <Video className="size-3.5 shrink-0" />
+              <div className="space-y-2">
+                <UploadCloud className="size-8 text-slate-500 mx-auto" />
+                <p className="text-xs text-slate-300">
+                  <span className="font-semibold text-violet-400">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-[10px] text-slate-500">Supports JPEG, PNG, MP4, and MOV files</p>
+              </div>
             )}
-            Detected as <span className="font-semibold capitalize">{mediaType}</span>
-          </div>
-        )}
-
-        {/* Could not auto-detect — neutral hint */}
-        {mediaURL && !urlError && !mediaType && (
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Info className="size-3.5 shrink-0" />
-            Could not auto-detect media type — it will be saved as a generic link.
           </div>
         )}
       </div>
@@ -259,7 +312,7 @@ export default function PostForm({ existing }: PostFormProps) {
       <div className="flex items-center gap-4 pt-2">
         <button
           type="submit"
-          disabled={saving || Boolean(urlError)}
+          disabled={saving || uploading}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white text-sm font-semibold transition-all cursor-pointer"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
