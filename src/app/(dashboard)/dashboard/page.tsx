@@ -141,7 +141,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="px-5 pb-5">
                 {statsLoading ? (
-                  <div className="h-8 w-10 bg-white/5 animate-pulse rounded-md" />
+                  <div className="h-9 w-14 bg-white/10 animate-pulse rounded-lg" />
                 ) : (
                   <div className="text-3xl font-bold text-white tracking-tight">{stat.value}</div>
                 )}
