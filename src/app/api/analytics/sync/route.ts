@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase/config";
 import { collection, getDocs, updateDoc, doc, query, where, Timestamp } from "firebase/firestore";
+import { decryptToken } from "@/lib/utils/encryption";
 
 import { getFacebookPageStats, getFacebookPostStats } from "@/lib/services/social/facebook.service";
 import { getInstagramAccountStats, getInstagramMediaStats } from "@/lib/services/social/instagram.service";
@@ -25,19 +26,20 @@ export async function POST(request: NextRequest) {
       // Skip mock accounts
       if (acc.accessToken && !acc.accessToken.startsWith("mock_")) {
         try {
+          const decryptedToken = decryptToken(acc.accessToken);
           let followers = acc.followerCount || 0;
 
           if (acc.platform === "facebook") {
-            const stats = await getFacebookPageStats(acc.accountId, acc.accessToken);
+            const stats = await getFacebookPageStats(acc.accountId, decryptedToken);
             followers = stats.followerCount;
           } else if (acc.platform === "instagram") {
-            const stats = await getInstagramAccountStats(acc.accountId, acc.accessToken);
+            const stats = await getInstagramAccountStats(acc.accountId, decryptedToken);
             followers = stats.followerCount;
           } else if (acc.platform === "tiktok") {
-            const stats = await getTikTokCreatorInfo(acc.accessToken);
+            const stats = await getTikTokCreatorInfo(decryptedToken);
             followers = stats.followerCount;
           } else if (acc.platform === "youtube") {
-            const stats = await getYouTubeChannelStats(acc.accountId, acc.accessToken);
+            const stats = await getYouTubeChannelStats(acc.accountId, decryptedToken);
             followers = stats.subscriberCount;
           }
 
@@ -66,9 +68,11 @@ export async function POST(request: NextRequest) {
       if (!account || !account.accessToken) return;
 
       try {
+        const decryptedToken = decryptToken(account.accessToken);
+
         // A. Handle TikTok Async Polling Check
         if (log.platform === "tiktok" && log.publishStatus === "processing" && log.platformPostId) {
-          const statusCheck = await getTikTokPublishStatus(log.platformPostId, account.accessToken);
+          const statusCheck = await getTikTokPublishStatus(log.platformPostId, decryptedToken);
           if (statusCheck.status === "success") {
             await updateDoc(log.ref, {
               status: "success",
@@ -97,13 +101,13 @@ export async function POST(request: NextRequest) {
           let stats = { likeCount: 0, commentCount: 0, viewCount: 0, shareCount: 0 };
 
           if (log.platform === "facebook") {
-            stats = await getFacebookPostStats(log.platformPostId, account.accessToken);
+            stats = await getFacebookPostStats(log.platformPostId, decryptedToken);
           } else if (log.platform === "instagram") {
-            stats = await getInstagramMediaStats(log.platformPostId, account.accessToken);
+            stats = await getInstagramMediaStats(log.platformPostId, decryptedToken);
           } else if (log.platform === "tiktok") {
-            stats = await getTikTokVideoStats(log.platformPostId, account.accessToken);
+            stats = await getTikTokVideoStats(log.platformPostId, decryptedToken);
           } else if (log.platform === "youtube") {
-            stats = await getYouTubeVideoStats(log.platformPostId, account.accessToken);
+            stats = await getYouTubeVideoStats(log.platformPostId, decryptedToken);
           }
 
           // Update log

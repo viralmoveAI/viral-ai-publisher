@@ -63,10 +63,16 @@ function AccountsContent() {
       const fetchCandidates = async () => {
         setFetchingSession(true);
         try {
-          const res = await fetch("/api/auth/facebook/session");
+          const endpoint = selectPlatform === "youtube" 
+            ? "/api/auth/youtube/session"
+            : "/api/auth/facebook/session";
+          const res = await fetch(endpoint);
           if (res.ok) {
             const data = await res.json();
-            setCandidates(data.accounts || []);
+            const loaded = selectPlatform === "youtube"
+              ? (data.account ? [data.account] : [])
+              : (data.accounts || []);
+            setCandidates(loaded);
             setShowSelectModal(true);
           } else {
             toast.error("OAuth session expired. Please try again.");
@@ -90,17 +96,32 @@ function AccountsContent() {
     setConnectingId(candidate.accountId);
     try {
       const docRef = doc(db, "workspaces", workspaceId, "social_accounts", candidate.accountId);
-      await setDoc(docRef, {
+      
+      const payload: any = {
         workspaceId,
         platform: candidate.platform,
         accountName: candidate.accountName,
         accountId: candidate.accountId,
         accessToken: candidate.accessToken,
-        tokenExpiresAt: null, // Non-expiring page tokens
         profilePictureURL: candidate.profilePictureURL,
         followerCount: candidate.followerCount,
         connectedAt: serverTimestamp(),
-      });
+      };
+
+      if (candidate.platform === "youtube") {
+        payload.refreshToken = candidate.refreshToken || null;
+        if (candidate.expiresIn) {
+          const expiryDate = new Date();
+          expiryDate.setSeconds(expiryDate.getSeconds() + candidate.expiresIn);
+          payload.tokenExpiresAt = expiryDate;
+        } else {
+          payload.tokenExpiresAt = null;
+        }
+      } else {
+        payload.tokenExpiresAt = null; // Non-expiring Meta page tokens
+      }
+
+      await setDoc(docRef, payload);
       toast.success(`Successfully connected ${candidate.accountName}!`);
       
       // Close modal and clean URL

@@ -49,7 +49,7 @@ export const PLATFORM_META: PlatformMeta[] = [
     id: "youtube",
     label: "YouTube",
     color: "#FF0000",
-    available: false,
-    oauthPath: null,
+    available: true,
+    oauthPath: "/api/auth/youtube",
   },
 ];
