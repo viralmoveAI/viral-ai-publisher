@@ -89,6 +89,7 @@ export function usePublishing() {
           workspaceId,
           caption: post.caption,
           mediaUrl: post.mediaURL || null,
+          mediaType: post.mediaType || null,
           platform: account.platform,
           accessToken: account.accessToken,
           accountName: account.accountName,
@@ -133,7 +134,7 @@ export function usePublishing() {
       errorMessage: result.errorMessage || null,
       attemptedAt: serverTimestamp(),
       completedAt: serverTimestamp(),
-      durationMs: result.durationMs,
+      durationMs: result.durationMs || 0,
       isMock,
     });
 
