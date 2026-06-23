@@ -94,8 +94,19 @@ export function usePublishing() {
           accessToken: account.accessToken,
           accountName: account.accountName,
           isMock,
+          // Platform compliance settings
+          ytMadeForKids: post.ytMadeForKids,
+          ytCategoryId: post.ytCategoryId,
+          ttPrivacyLevel: post.ttPrivacyLevel,
+          ttAllowComment: post.ttAllowComment,
+          ttAllowDuet: post.ttAllowDuet,
+          ttAllowStitch: post.ttAllowStitch,
+          ttIsAigc: post.ttIsAigc,
+          ttBrandContent: post.ttBrandContent,
+          ttBrandOrganic: post.ttBrandOrganic,
         }),
       });
+
 
       result = await res.json();
     } catch (err: any) {

@@ -24,10 +24,27 @@ export async function publishVideoToTikTok(
   openId: string,
   accessToken: string,
   videoUrl: string,
-  caption: string
+  caption: string,
+  options?: {
+    privacyLevel?: "PUBLIC" | "MUTUAL_FOLLOW_FRIENDS" | "SELF_ONLY";
+    allowComment?: boolean;
+    allowDuet?: boolean;
+    allowStitch?: boolean;
+    isAigc?: boolean;
+    brandContent?: boolean;
+    brandOrganic?: boolean;
+  }
 ): Promise<TikTokPublishResult> {
   try {
     const endpoint = "https://open.tiktokapis.com/v2/post/publish/video/init/";
+    
+    let privacyVal = "PUBLIC_TO_EVERYONE";
+    if (options?.privacyLevel === "MUTUAL_FOLLOW_FRIENDS") {
+      privacyVal = "MUTUAL_FOLLOW_FRIENDS";
+    } else if (options?.privacyLevel === "SELF_ONLY") {
+      privacyVal = "SELF_ONLY";
+    }
+
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -37,11 +54,14 @@ export async function publishVideoToTikTok(
       body: JSON.stringify({
         post_info: {
           title: caption.substring(0, 150), // TikTok title limit
-          privacy_level: "PUBLIC_TO_EVERYONE",
-          disable_duet: false,
-          disable_stitch: false,
-          disable_comment: false,
+          privacy_level: privacyVal,
+          disable_duet: options?.allowDuet === false,
+          disable_stitch: options?.allowStitch === false,
+          disable_comment: options?.allowComment === false,
           video_cover_timestamp_ms: 1000,
+          is_aigc: options?.isAigc ?? false,
+          brand_content_toggle: options?.brandContent ?? false,
+          brand_organic_toggle: options?.brandOrganic ?? false,
         },
         source_info: {
           source: "FILE_UPLOAD",
@@ -51,6 +71,7 @@ export async function publishVideoToTikTok(
         },
       }),
     });
+
 
     const data = await res.json();
     if (!res.ok || data.error) {

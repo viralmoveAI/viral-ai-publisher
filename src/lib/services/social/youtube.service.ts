@@ -24,7 +24,11 @@ export async function uploadVideoToYouTube(
   accessToken: string,
   videoUrl: string,
   title: string,
-  description: string
+  description: string,
+  options?: {
+    categoryId?: string;
+    madeForKids?: boolean;
+  }
 ): Promise<YouTubePublishResult> {
   try {
     // 1. Initial metadata insert request
@@ -39,14 +43,15 @@ export async function uploadVideoToYouTube(
         snippet: {
           title: title.substring(0, 100),
           description: description.substring(0, 5000),
-          categoryId: "22", // People & Blogs
+          categoryId: options?.categoryId || "22",
         },
         status: {
           privacyStatus: "private",
-          selfDeclaredMadeForKids: false,
+          selfDeclaredMadeForKids: options?.madeForKids ?? false,
         },
       }),
     });
+
 
     if (!initRes.ok) {
       const errText = await initRes.text();

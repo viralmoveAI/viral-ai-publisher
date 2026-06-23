@@ -24,7 +24,22 @@ export interface Post {
   publishedAt: any | null;
   createdAt: any;
   updatedAt: any;
+
+  // Platform-specific publishing options
+  // YouTube
+  ytMadeForKids?: boolean;
+  ytCategoryId?: string;
+
+  // TikTok
+  ttPrivacyLevel?: "PUBLIC" | "MUTUAL_FOLLOW_FRIENDS" | "SELF_ONLY";
+  ttAllowComment?: boolean;
+  ttAllowDuet?: boolean;
+  ttAllowStitch?: boolean;
+  ttIsAigc?: boolean;
+  ttBrandContent?: boolean;
+  ttBrandOrganic?: boolean;
 }
 
 export type PostFormData = Omit<Post, "id" | "workspaceId" | "userId" | "status" | "publishedAt" | "createdAt" | "updatedAt">;
+
 
