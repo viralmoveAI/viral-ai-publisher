@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { decryptToken } from "@/lib/utils/encryption";
 import { publishPhotoToFacebook, publishVideoToFacebook, publishTextToFacebook } from "@/lib/services/social/facebook.service";
 import { publishToInstagram } from "@/lib/services/social/instagram.service";
 import { publishVideoToTikTok } from "@/lib/services/social/tiktok.service";
@@ -73,17 +74,20 @@ export async function POST(
     } else if (!accessToken) {
       return NextResponse.json({ error: "Access token is missing for real integration" }, { status: 400 });
     } else {
+      // Decrypt token for actual platform integration
+      const decryptedToken = decryptToken(accessToken);
+      
       // Real API Integrations
       const cleanPlatform = platform.toLowerCase();
 
       if (cleanPlatform === "facebook") {
         let fbRes;
         if (mediaUrl && mediaType === "video") {
-          fbRes = await publishVideoToFacebook(socialAccountId, accessToken, mediaUrl, caption || "");
+          fbRes = await publishVideoToFacebook(socialAccountId, decryptedToken, mediaUrl, caption || "");
         } else if (mediaUrl) {
-          fbRes = await publishPhotoToFacebook(socialAccountId, accessToken, mediaUrl, caption || "");
+          fbRes = await publishPhotoToFacebook(socialAccountId, decryptedToken, mediaUrl, caption || "");
         } else {
-          fbRes = await publishTextToFacebook(socialAccountId, accessToken, caption || "");
+          fbRes = await publishTextToFacebook(socialAccountId, decryptedToken, caption || "");
         }
 
         result = {
@@ -100,7 +104,7 @@ export async function POST(
         }
         const igRes = await publishToInstagram(
           socialAccountId,
-          accessToken,
+          decryptedToken,
           mediaType === "video" ? "video" : "image",
           mediaUrl,
           caption || ""
@@ -118,7 +122,7 @@ export async function POST(
         if (!mediaUrl || mediaType !== "video") {
           return NextResponse.json({ error: "TikTok content posting API requires a video file" }, { status: 400 });
         }
-        const ttRes = await publishVideoToTikTok(socialAccountId, accessToken, mediaUrl, caption || "");
+        const ttRes = await publishVideoToTikTok(socialAccountId, decryptedToken, mediaUrl, caption || "");
         
         result = {
           success: ttRes.success,
@@ -131,12 +135,12 @@ export async function POST(
         if (!mediaUrl || mediaType !== "video") {
           return NextResponse.json({ error: "YouTube Data API requires a video file" }, { status: 400 });
         }
-        const ytRes = await uploadVideoToYouTube(accessToken, mediaUrl, caption.substring(0, 100), caption);
+        const ytRes = await uploadVideoToYouTube(decryptedToken, mediaUrl, caption.substring(0, 100), caption);
 
         result = {
           success: ytRes.success,
-          postId: ytRes.postId,
-          postUrl: ytRes.postUrl,
+          postId: ytRes.postId || undefined,
+          postUrl: ytRes.postUrl || undefined,
           errorCode: ytRes.error ? "YOUTUBE_PUBLISH_ERROR" : undefined,
           errorMessage: ytRes.error,
           publishStatus: ytRes.success ? "success" : "failed",

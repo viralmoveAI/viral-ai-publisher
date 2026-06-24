@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { encryptToken } from "@/lib/utils/encryption";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -113,12 +114,12 @@ export async function GET(request: NextRequest) {
       `${appUrl}/accounts?select_platform=${platform}&workspaceId=${workspaceId}`
     );
 
-    // Limit cookie size (max 4KB) by picking essential fields
+    // Limit cookie size (max 4KB) by picking essential fields and encrypting the sensitive token
     const cookieData = JSON.stringify(
       availableAccounts.slice(0, 10).map((acc) => ({
         ai: acc.accountId,
         an: acc.accountName,
-        at: acc.accessToken,
+        at: encryptToken(acc.accessToken),
         pp: acc.profilePictureURL,
         fc: acc.followerCount,
         pl: acc.platform,
