@@ -348,14 +348,12 @@ export default function ProfilePage() {
           placeholder="Enter your name"
         />
         <InfoRow label="Email" value={user.email || ""} />
-        <InfoRow label="User ID" value={user.uid} />
         <InfoRow label="Member Since" value={joinedDate} />
       </SectionCard>
 
       {/* ── Workspace Info ─────────────────────────────────────────────────── */}
       <SectionCard icon={Briefcase} title="Workspace" description="Your default workspace details">
         <InfoRow label="Workspace" value={workspaceName || "Loading…"} />
-        <InfoRow label="Workspace ID" value={userProfile?.workspaceId || "—"} />
         <InfoRow label="Plan" value={userProfile?.plan ? userProfile.plan.charAt(0).toUpperCase() + userProfile.plan.slice(1) : "Free"} />
         <InfoRow label="Role" value={userProfile?.role ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1) : "User"} />
         <InfoRow label="Connected Accounts" value={String(accounts.length)} />
