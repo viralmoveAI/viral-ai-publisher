@@ -42,7 +42,7 @@ export async function uploadVideoToYouTube(
           categoryId: "22", // People & Blogs
         },
         status: {
-          privacyStatus: "public",
+          privacyStatus: "private",
           selfDeclaredMadeForKids: false,
         },
       }),

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase/config";
-import { collection, getDocs, updateDoc, doc, query, where, Timestamp } from "firebase/firestore";
+import { admin, adminDb } from "@/lib/firebase/admin";
 import { decryptToken } from "@/lib/utils/encryption";
+import { refreshYouTubeAccessToken } from "@/lib/services/social/youtubeRefresh.service";
 
 import { getFacebookPageStats, getFacebookPostStats } from "@/lib/services/social/facebook.service";
 import { getInstagramAccountStats, getInstagramMediaStats } from "@/lib/services/social/instagram.service";
@@ -16,9 +16,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing workspaceId" }, { status: 400 });
     }
 
-    // 1. Fetch connected accounts
-    const accountsRef = collection(db, "workspaces", workspaceId, "social_accounts");
-    const accountsSnap = await getDocs(accountsRef);
+    // 1. Fetch connected accounts using Admin SDK
+    const accountsSnap = await adminDb
+      .collection("workspaces")
+      .doc(workspaceId)
+      .collection("social_accounts")
+      .get();
     const accounts = accountsSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
     // Sync account follower statistics
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
       // Skip mock accounts
       if (acc.accessToken && !acc.accessToken.startsWith("mock_")) {
         try {
-          const decryptedToken = decryptToken(acc.accessToken);
+          let decryptedToken = decryptToken(acc.accessToken);
           let followers = acc.followerCount || 0;
 
           if (acc.platform === "facebook") {
@@ -39,14 +42,24 @@ export async function POST(request: NextRequest) {
             const stats = await getTikTokCreatorInfo(decryptedToken);
             followers = stats.followerCount;
           } else if (acc.platform === "youtube") {
+            // Refresh token first if needed
+            const refreshResult = await refreshYouTubeAccessToken(workspaceId, acc.id);
+            if (!refreshResult.error) {
+              decryptedToken = refreshResult.accessToken;
+            }
             const stats = await getYouTubeChannelStats(acc.accountId, decryptedToken);
             followers = stats.subscriberCount;
           }
 
-          // Update Firestore
-          await updateDoc(doc(db, "workspaces", workspaceId, "social_accounts", acc.id), {
-            followerCount: followers,
-          });
+          // Update Firestore using Admin SDK
+          await adminDb
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("social_accounts")
+            .doc(acc.id)
+            .update({
+              followerCount: followers,
+            });
         } catch (accountErr) {
           console.error(`Error syncing follower count for account ${acc.id}:`, accountErr);
         }
@@ -55,9 +68,12 @@ export async function POST(request: NextRequest) {
 
     await Promise.all(accountSyncPromises);
 
-    // 2. Fetch and sync post engagement statistics (last 30 days logs)
-    const logsRef = collection(db, "workspaces", workspaceId, "publishing_logs");
-    const logsSnap = await getDocs(logsRef);
+    // 2. Fetch and sync post engagement statistics (last 30 days logs) using Admin SDK
+    const logsSnap = await adminDb
+      .collection("workspaces")
+      .doc(workspaceId)
+      .collection("publishing_logs")
+      .get();
     const logs = logsSnap.docs.map(d => ({ id: d.id, ref: d.ref, ...d.data() })) as any[];
 
     const logsSyncPromises = logs.map(async (log) => {
@@ -74,7 +90,7 @@ export async function POST(request: NextRequest) {
         if (log.platform === "tiktok" && log.publishStatus === "processing" && log.platformPostId) {
           const statusCheck = await getTikTokPublishStatus(log.platformPostId, decryptedToken);
           if (statusCheck.status === "success") {
-            await updateDoc(log.ref, {
+            await log.ref.update({
               status: "success",
               publishStatus: "success",
               completedAt: new Date(),
@@ -82,7 +98,7 @@ export async function POST(request: NextRequest) {
             // Refetch log details to fetch metrics next loop
             log.publishStatus = "success";
           } else if (statusCheck.status === "failed") {
-            await updateDoc(log.ref, {
+            await log.ref.update({
               status: "failed",
               publishStatus: "failed",
               errorCode: "TIKTOK_PROCESSING_FAILED",
@@ -107,16 +123,21 @@ export async function POST(request: NextRequest) {
           } else if (log.platform === "tiktok") {
             stats = await getTikTokVideoStats(log.platformPostId, decryptedToken);
           } else if (log.platform === "youtube") {
-            stats = await getYouTubeVideoStats(log.platformPostId, decryptedToken);
+            let activeToken = decryptedToken;
+            const refreshResult = await refreshYouTubeAccessToken(workspaceId, log.socialAccountId);
+            if (!refreshResult.error) {
+              activeToken = refreshResult.accessToken;
+            }
+            stats = await getYouTubeVideoStats(log.platformPostId, activeToken);
           }
 
-          // Update log
-          await updateDoc(log.ref, {
+          // Update log using Admin SDK
+          await log.ref.update({
             likeCount: stats.likeCount,
             commentCount: stats.commentCount,
             viewCount: stats.viewCount,
             shareCount: stats.shareCount,
-            lastSyncedAt: Timestamp.now(),
+            lastSyncedAt: admin.firestore.Timestamp.now(),
           });
         }
       } catch (logErr) {

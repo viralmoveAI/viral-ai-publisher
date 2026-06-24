@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebase/config";
-import { collectionGroup, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { adminDb } from "@/lib/firebase/admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,11 +20,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Missing publish_id" }, { status: 400 });
       }
 
-      // Query PublishingLog across all workspaces since webhook is global
-      // Note: We use collectionGroup for publishing_logs
-      const logsRef = collectionGroup(db, "publishing_logs");
-      const q = query(logsRef, where("platformPostId", "==", publishId));
-      const querySnapshot = await getDocs(q);
+      // Query PublishingLog across all workspaces since webhook is global using Admin SDK collectionGroup
+      const q = adminDb.collectionGroup("publishing_logs").where("platformPostId", "==", publishId);
+      const querySnapshot = await q.get();
 
       if (querySnapshot.empty) {
         console.warn(`No publishing log found matching platformPostId: ${publishId}`);
@@ -39,9 +36,8 @@ export async function POST(request: NextRequest) {
 
       const finalStatus = statusMap[status as "SUCCESS" | "FAILED"] || "failed";
 
-      // Update matching logs
+      // Update matching logs using Admin SDK
       const promises = querySnapshot.docs.map(async (document) => {
-        const logData = document.data();
         const updateData: Record<string, any> = {
           publishStatus: finalStatus,
           status: finalStatus,
@@ -58,7 +54,7 @@ export async function POST(request: NextRequest) {
           updateData.errorMessage = errorMsg || "Video processing failed on TikTok's end.";
         }
 
-        await updateDoc(doc(db, document.ref.path), updateData);
+        await document.ref.update(updateData);
         console.log(`Updated TikTok log ${document.id} status to ${finalStatus}`);
       });
 

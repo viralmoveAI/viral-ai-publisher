@@ -4,6 +4,7 @@ import { publishPhotoToFacebook, publishVideoToFacebook, publishTextToFacebook }
 import { publishToInstagram } from "@/lib/services/social/instagram.service";
 import { publishVideoToTikTok } from "@/lib/services/social/tiktok.service";
 import { uploadVideoToYouTube } from "@/lib/services/social/youtube.service";
+import { refreshYouTubeAccessToken } from "@/lib/services/social/youtubeRefresh.service";
 
 // Helper: simulate publishing with realistic random outcomes (fallback/mock mode)
 async function simulatePublish(platform: string): Promise<{
@@ -135,16 +136,28 @@ export async function POST(
         if (!mediaUrl || mediaType !== "video") {
           return NextResponse.json({ error: "YouTube Data API requires a video file" }, { status: 400 });
         }
-        const ytRes = await uploadVideoToYouTube(decryptedToken, mediaUrl, caption.substring(0, 100), caption);
+        
+        // Refresh token if expired
+        const refreshResult = await refreshYouTubeAccessToken(workspaceId, socialAccountId);
+        if (refreshResult.error) {
+          result = {
+            success: false,
+            errorCode: "YOUTUBE_REFRESH_ERROR",
+            errorMessage: refreshResult.error,
+            publishStatus: "failed",
+          };
+        } else {
+          const ytRes = await uploadVideoToYouTube(refreshResult.accessToken, mediaUrl, caption.substring(0, 100), caption);
 
-        result = {
-          success: ytRes.success,
-          postId: ytRes.postId || undefined,
-          postUrl: ytRes.postUrl || undefined,
-          errorCode: ytRes.error ? "YOUTUBE_PUBLISH_ERROR" : undefined,
-          errorMessage: ytRes.error,
-          publishStatus: ytRes.success ? "success" : "failed",
-        };
+          result = {
+            success: ytRes.success,
+            postId: ytRes.postId || undefined,
+            postUrl: ytRes.postUrl || undefined,
+            errorCode: ytRes.error ? "YOUTUBE_PUBLISH_ERROR" : undefined,
+            errorMessage: ytRes.error,
+            publishStatus: ytRes.success ? "success" : "failed",
+          };
+        }
       } else {
         // Fallback simulation
         const mockResult = await simulatePublish(platform);
