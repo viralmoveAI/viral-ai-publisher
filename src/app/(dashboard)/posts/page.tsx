@@ -32,12 +32,41 @@ const EMPTY_MESSAGES: Record<string, string> = {
 type MainTab = "posts" | "history";
 
 export default function PostsPage() {
-  const { posts, loading, error, deletePost } = usePosts();
-  const { logs, logsLoading, hasMore, isFetchingNext, fetchNextLogs } = usePublishing();
+  const {
+    posts,
+    loading,
+    error,
+    deletePost,
+    pageHistory,
+    hasMore: hasMorePosts,
+    isFetching,
+    fetchInitialPosts,
+    fetchNextPage,
+    fetchPrevPage,
+  } = usePosts();
+  const {
+    logs,
+    logsLoading,
+    hasMore,
+    isFetchingNext,
+    fetchNextLogs,
+    stats,
+    fetchStats
+  } = usePublishing();
   const [mainTab, setMainTab] = useState<MainTab>("posts");
   const [activeTab, setActiveTab] = useState<PostStatus | "All">("All");
 
   const observerTargetRef = useRef<HTMLDivElement | null>(null);
+
+  // Trigger initial posts fetch when active tab changes
+  useEffect(() => {
+    fetchInitialPosts(activeTab);
+  }, [activeTab]);
+
+  // Refresh workspace counts in background when posts list updates
+  useEffect(() => {
+    fetchStats();
+  }, [posts]);
 
   useEffect(() => {
     if (mainTab !== "history" || !hasMore || isFetchingNext) return;
@@ -63,15 +92,13 @@ export default function PostsPage() {
     };
   }, [mainTab, hasMore, isFetchingNext, fetchNextLogs]);
 
-  const filtered = activeTab === "All"
-    ? posts
-    : posts.filter((p) => p.status === activeTab);
 
+  const totalPostsCount = (stats?.draftCount ?? 0) + (stats?.publishedCount ?? 0) + (stats?.failedCount ?? 0);
   const counts = {
-    All:       posts.length,
-    Draft:     posts.filter((p) => p.status === "Draft").length,
-    Published: posts.filter((p) => p.status === "Published").length,
-    Failed:    posts.filter((p) => p.status === "Failed").length,
+    All:       totalPostsCount,
+    Draft:     stats?.draftCount ?? 0,
+    Published: stats?.publishedCount ?? 0,
+    Failed:    stats?.failedCount ?? 0,
   };
 
 
@@ -117,7 +144,7 @@ export default function PostsPage() {
           <FileText className="size-3.5" />
           Posts
           <span className={`text-xs px-1.5 py-0.5 rounded-md ${mainTab === "posts" ? "bg-violet-600/30 text-violet-300" : "bg-[#0A0A0F] text-slate-500"}`}>
-            {posts.length}
+            {totalPostsCount}
           </span>
         </button>
         <button
@@ -173,15 +200,54 @@ export default function PostsPage() {
             </div>
           )}
 
-          {!loading && !error && filtered.length > 0 && (
-            <div className="grid gap-5 md:grid-cols-2">
-              {filtered.map((post) => (
-                <PostCard key={post.id} post={post} onDelete={deletePost} />
+          {!loading && !error && posts.length > 0 && (
+            <div className="space-y-6">
+              <div className="grid gap-5 md:grid-cols-2">
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} onDelete={deletePost} />
+                ))}
+              </div>
+
+              {/* Prev / Next Pagination Buttons */}
+              <div className="flex items-center justify-end gap-4 pt-4 border-t border-[#1E1E2D]">
+                <button
+                  type="button"
+                  onClick={() => fetchPrevPage(activeTab)}
+                  disabled={pageHistory.length === 0 || isFetching}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#13131A] hover:bg-[#161622] border border-[#1E1E2D] disabled:opacity-40 disabled:cursor-not-allowed text-slate-350 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  &larr; Prev
+                </button>
+                <span className="text-xs text-slate-500 font-medium">
+                  Page <span className="text-slate-200">{pageHistory.length + 1}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage(activeTab)}
+                  disabled={!hasMorePosts || isFetching}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#13131A] hover:bg-[#161622] border border-[#1E1E2D] disabled:opacity-40 disabled:cursor-not-allowed text-slate-350 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Next &rarr;
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Skeleton loading block for page fetching */}
+          {isFetching && (
+            <div className="grid gap-5 md:grid-cols-2 animate-pulse mt-5">
+              {[...Array(2)].map((_, i) => (
+                <div key={`post-skeleton-${i}`} className="h-44 rounded-2xl border border-[#1E1E2D] bg-[#13131A] p-5 space-y-4">
+                  <div className="h-5 bg-slate-800/60 rounded w-1/3" />
+                  <div className="h-4 bg-slate-800/40 w-full rounded" />
+                  <div className="h-4 bg-slate-800/40 w-5/6 rounded" />
+                  <div className="h-9 bg-slate-800/60 w-full rounded mt-4" />
+                </div>
               ))}
             </div>
           )}
 
-          {!loading && !error && filtered.length === 0 && (
+          {!loading && !error && posts.length === 0 && (
             <div className="text-center py-20 border border-[#1E1E2D] bg-[#13131A]/30 rounded-2xl p-8 space-y-4">
               <FileText className="size-12 text-slate-600 mx-auto" />
               <h3 className="text-lg font-semibold text-slate-300">{EMPTY_MESSAGES[activeTab]}</h3>
