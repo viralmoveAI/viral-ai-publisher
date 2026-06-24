@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Share2, AlertCircle, Loader2, Sparkles, HelpCircle, ArrowRight, ShieldCheck, Check } from "lucide-react";
+import { Share2, AlertCircle, Loader2, HelpCircle, ArrowRight, ShieldCheck, Check } from "lucide-react";
 import { toast } from "sonner";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -22,7 +22,7 @@ import {
 function AccountsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { accounts, loading, error, disconnectAccount, connectMockAccount, workspaceId } = useSocialAccounts();
+  const { accounts, loading, error, disconnectAccount, workspaceId } = useSocialAccounts();
 
   // Search parameters detection
   const selectPlatform = searchParams.get("select_platform");
@@ -53,7 +53,6 @@ function AccountsContent() {
           description: errDetails || "An error occurred during authentication.",
         });
       }
-      // Keep error parameter in state if we want to show instructions, but clean URL otherwise.
     }
   }, [errCode, errDetails, isConnectedParam, router]);
 
@@ -141,17 +140,6 @@ function AccountsContent() {
     router.push(`${oauthPath}?workspaceId=${workspaceId}&platform=${platformId}`);
   };
 
-  // Trigger mock/sandbox connection
-  const handleMockConnect = async (platform: "facebook" | "instagram") => {
-    try {
-      const toastId = toast.loading(`Creating mock ${platform} account...`);
-      await connectMockAccount(platform);
-      toast.success(`Mock ${platform} account connected!`, { id: toastId });
-    } catch (err) {
-      toast.error("Failed to connect mock account.");
-    }
-  };
-
   // Group accounts by platform for status
   const connectedPlatforms = accounts.map((a) => a.platform);
 
@@ -170,7 +158,7 @@ function AccountsContent() {
 
       {/* Error alert with .env instructions if missing credentials */}
       {errCode === "missing_credentials" && (
-        <div className="rounded-2xl border border-violet-500/20 bg-violet-600/5 p-5 text-sm text-slate-300 space-y-4">
+        <div className="rounded-2xl border border-violet-500/20 bg-violet-600/5 p-5 text-sm text-slate-300 space-y-4 max-w-2xl">
           <div className="flex items-start gap-3">
             <AlertCircle className="size-5 text-violet-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -188,21 +176,11 @@ function AccountsContent() {
             <p>NEXT_PUBLIC_FACEBOOK_APP_ID=your_facebook_app_id</p>
             <p>NEXT_PUBLIC_APP_URL=http://localhost:3000</p>
           </div>
-
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-xs text-violet-300 font-medium">Bypass configuration:</span>
-            <button
-              onClick={() => router.replace("/accounts")}
-              className="text-xs font-semibold text-slate-400 hover:text-white underline cursor-pointer"
-            >
-              Dismiss warning and use Simulation Mode below
-            </button>
-          </div>
         </div>
       )}
 
       {/* Main Connection Panel */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="max-w-2xl">
         {/* Platform Grid */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Available Platforms</h3>
@@ -272,45 +250,6 @@ function AccountsContent() {
                 </div>
               );
             })}
-          </div>
-        </div>
-
-        {/* Local Sandbox / Connection Simulation */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-1.5">
-            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Demo Sandbox</h3>
-            <span className="text-[9px] bg-violet-500/10 text-violet-400 border border-violet-500/20 px-1.5 py-0.5 rounded-md font-semibold tracking-wide">
-              SIMULATION
-            </span>
-          </div>
-
-          <div className="rounded-xl border border-[#1E1E2D] bg-[#13131A] p-5 space-y-4">
-            <div className="flex items-start gap-3">
-              <Sparkles className="size-5 text-violet-400 shrink-0 mt-0.5 animate-pulse" />
-              <div className="space-y-1">
-                <h4 className="text-sm font-medium text-white">Instant Account Simulator</h4>
-                <p className="text-slate-400 text-xs leading-relaxed">
-                  Bypass the Meta OAuth application approval process completely. Use the buttons below to link simulated Pages and profiles directly to your workspace.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                onClick={() => handleMockConnect("facebook")}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-[#1E1E2D] bg-white/[0.02] text-slate-200 hover:bg-white/[0.04] text-xs font-semibold transition-all cursor-pointer"
-              >
-                <PlatformIcon platform="facebook" className="size-4 text-[#1877F2]" />
-                <span>Simulate Facebook</span>
-              </button>
-              <button
-                onClick={() => handleMockConnect("instagram")}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-[#1E1E2D] bg-white/[0.02] text-slate-200 hover:bg-white/[0.04] text-xs font-semibold transition-all cursor-pointer"
-              >
-                <PlatformIcon platform="instagram" className="size-4 text-[#E1306C]" />
-                <span>Simulate Instagram</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
