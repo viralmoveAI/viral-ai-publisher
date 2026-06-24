@@ -49,7 +49,25 @@ export async function POST(
   try {
     const { id: postId } = await params;
     const body = await request.json();
-    const { socialAccountId, workspaceId, caption, mediaUrl, mediaType, platform, accessToken, isMock } = body;
+    const { 
+      socialAccountId, 
+      workspaceId, 
+      caption, 
+      mediaUrl, 
+      mediaType, 
+      platform, 
+      accessToken, 
+      isMock,
+      ytMadeForKids,
+      ytCategoryId,
+      ttPrivacyLevel,
+      ttAllowComment,
+      ttAllowDuet,
+      ttAllowStitch,
+      ttIsAigc,
+      ttBrandContent,
+      ttBrandOrganic
+    } = body;
 
     if (!postId || !socialAccountId || !workspaceId || !platform) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -123,7 +141,15 @@ export async function POST(
         if (!mediaUrl || mediaType !== "video") {
           return NextResponse.json({ error: "TikTok content posting API requires a video file" }, { status: 400 });
         }
-        const ttRes = await publishVideoToTikTok(socialAccountId, decryptedToken, mediaUrl, caption || "");
+        const ttRes = await publishVideoToTikTok(socialAccountId, decryptedToken, mediaUrl, caption || "", {
+          privacyLevel: ttPrivacyLevel,
+          allowComment: ttAllowComment,
+          allowDuet: ttAllowDuet,
+          allowStitch: ttAllowStitch,
+          isAigc: ttIsAigc,
+          brandContent: ttBrandContent,
+          brandOrganic: ttBrandOrganic
+        });
         
         result = {
           success: ttRes.success,
@@ -147,7 +173,10 @@ export async function POST(
             publishStatus: "failed",
           };
         } else {
-          const ytRes = await uploadVideoToYouTube(refreshResult.accessToken, mediaUrl, caption.substring(0, 100), caption);
+          const ytRes = await uploadVideoToYouTube(refreshResult.accessToken, mediaUrl, caption.substring(0, 100), caption, {
+            categoryId: ytCategoryId,
+            madeForKids: ytMadeForKids
+          });
 
           result = {
             success: ytRes.success,
@@ -167,6 +196,7 @@ export async function POST(
         };
       }
     }
+
 
     return NextResponse.json({
       success: result.success,

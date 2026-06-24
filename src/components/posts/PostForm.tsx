@@ -33,6 +33,20 @@ export default function PostForm({ existing }: PostFormProps) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // YouTube specific options state
+  const [ytMadeForKids, setYtMadeForKids] = useState<boolean>(existing?.ytMadeForKids ?? false);
+  const [ytCategoryId, setYtCategoryId] = useState<string>(existing?.ytCategoryId ?? "22");
+
+  // TikTok specific options state
+  const [ttPrivacyLevel, setTtPrivacyLevel] = useState<"PUBLIC" | "MUTUAL_FOLLOW_FRIENDS" | "SELF_ONLY">(existing?.ttPrivacyLevel ?? "PUBLIC");
+  const [ttAllowComment, setTtAllowComment] = useState<boolean>(existing?.ttAllowComment ?? true);
+  const [ttAllowDuet, setTtAllowDuet] = useState<boolean>(existing?.ttAllowDuet ?? true);
+  const [ttAllowStitch, setTtAllowStitch] = useState<boolean>(existing?.ttAllowStitch ?? true);
+  const [ttIsAigc, setTtIsAigc] = useState<boolean>(existing?.ttIsAigc ?? false);
+  const [ttBrandContent, setTtBrandContent] = useState<boolean>(existing?.ttBrandContent ?? false);
+  const [ttBrandOrganic, setTtBrandOrganic] = useState<boolean>(existing?.ttBrandOrganic ?? false);
+
+
   // ── Tag helpers ────────────────────────────────────────────────────────────
   const addTag = () => {
     const raw = tagInput.trim().replace(/^#/, "");
@@ -143,6 +157,17 @@ export default function PostForm({ existing }: PostFormProps) {
         platform,
         mediaURL: mediaURL.trim() || null,
         mediaType,
+        // YouTube options
+        ytMadeForKids,
+        ytCategoryId,
+        // TikTok options
+        ttPrivacyLevel,
+        ttAllowComment,
+        ttAllowDuet,
+        ttAllowStitch,
+        ttIsAigc,
+        ttBrandContent,
+        ttBrandOrganic,
       };
 
       if (isEditing && existing) {
@@ -153,6 +178,7 @@ export default function PostForm({ existing }: PostFormProps) {
         toast.success("Draft saved!", { description: "Your post has been saved as a draft." });
       }
       router.push("/posts");
+
     } catch {
       toast.error("Failed to save post.", { description: "Please try again." });
     } finally {
@@ -207,6 +233,178 @@ export default function PostForm({ existing }: PostFormProps) {
           ))}
         </select>
       </div>
+
+      {/* YouTube Options */}
+      {platform === "YouTube" && (
+        <div className="p-4 rounded-xl border border-[#1E1E2D] bg-[#0A0A0F]/60 space-y-4">
+          <h3 className="text-sm font-semibold text-violet-400">YouTube Publishing Options</h3>
+          
+          {/* Made for Kids */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">Audience (COPPA Compliance) <span className="text-red-400">*</span></label>
+            <div className="flex items-center gap-4 text-sm text-slate-300">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="ytMadeForKids"
+                  checked={ytMadeForKids}
+                  onChange={() => setYtMadeForKids(true)}
+                  className="accent-violet-500"
+                />
+                Yes, it's made for kids
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="ytMadeForKids"
+                  checked={!ytMadeForKids}
+                  onChange={() => setYtMadeForKids(false)}
+                  className="accent-violet-500"
+                />
+                No, it's not made for kids
+              </label>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Regardless of your location, you’re legally required to comply with the Children's Online Privacy Protection Act (COPPA).
+            </p>
+          </div>
+
+          {/* Category */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">Video Category</label>
+            <select
+              value={ytCategoryId}
+              onChange={(e) => setYtCategoryId(e.target.value)}
+              className="w-full bg-[#0A0A0F] border border-[#1E1E2D] rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-violet-500/60 transition-colors"
+            >
+              <option value="22">People & Blogs</option>
+              <option value="20">Gaming</option>
+              <option value="27">Education</option>
+              <option value="24">Entertainment</option>
+              <option value="28">Science & Technology</option>
+              <option value="17">Sports</option>
+              <option value="1">Film & Animation</option>
+              <option value="10">Music</option>
+            </select>
+          </div>
+
+          {/* AI Disclosure Warning */}
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
+            <p className="font-semibold flex items-center gap-1.5">
+              ⚠️ AI Disclosure Requirement
+            </p>
+            <p className="text-slate-400">
+              If this video contains altered or synthetic content (e.g. AI voiceovers, face-swaps, generated scenes), you must manually disclose it in **YouTube Studio** after uploading to avoid channel penalties.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* TikTok Options */}
+      {platform === "TikTok" && (
+        <div className="p-4 rounded-xl border border-[#1E1E2D] bg-[#0A0A0F]/60 space-y-4">
+          <h3 className="text-sm font-semibold text-violet-400">TikTok Publishing Options</h3>
+
+          {/* Privacy Level */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">Privacy Settings</label>
+            <select
+              value={ttPrivacyLevel}
+              onChange={(e) => setTtPrivacyLevel(e.target.value as any)}
+              className="w-full bg-[#0A0A0F] border border-[#1E1E2D] rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-violet-500/60 transition-colors"
+            >
+              <option value="PUBLIC">Public (Everyone)</option>
+              <option value="MUTUAL_FOLLOW_FRIENDS">Friends (Mutual Followers)</option>
+              <option value="SELF_ONLY">Private (Only Me)</option>
+            </select>
+            <p className="text-[10px] text-slate-500">
+              Note: Un-audited TikTok apps publish as Private (Only Me) by default on TikTok.
+            </p>
+          </div>
+
+          {/* Interaction Toggles */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">Allow Interactions</label>
+            <div className="grid grid-cols-3 gap-3 text-xs text-slate-300">
+              <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border border-[#1E1E2D] bg-[#0A0A0F]">
+                <input
+                  type="checkbox"
+                  checked={ttAllowComment}
+                  onChange={(e) => setTtAllowComment(e.target.checked)}
+                  className="accent-violet-500"
+                />
+                Comments
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border border-[#1E1E2D] bg-[#0A0A0F]">
+                <input
+                  type="checkbox"
+                  checked={ttAllowDuet}
+                  onChange={(e) => setTtAllowDuet(e.target.checked)}
+                  className="accent-violet-500"
+                />
+                Duet
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-lg border border-[#1E1E2D] bg-[#0A0A0F]">
+                <input
+                  type="checkbox"
+                  checked={ttAllowStitch}
+                  onChange={(e) => setTtAllowStitch(e.target.checked)}
+                  className="accent-violet-500"
+                />
+                Stitch
+              </label>
+            </div>
+          </div>
+
+          {/* AI Content Disclosure */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                AI-Generated Content (AIGC)
+              </label>
+              <input
+                type="checkbox"
+                checked={ttIsAigc}
+                onChange={(e) => setTtIsAigc(e.target.checked)}
+                className="size-4 accent-violet-500 cursor-pointer"
+              />
+            </div>
+            <p className="text-[10px] text-slate-500">
+              TikTok policy requires declaring content generated or significantly altered by AI to avoid reach restrictions.
+            </p>
+          </div>
+
+          {/* Commercial/Branded Disclosures */}
+          <div className="space-y-3 pt-2 border-t border-[#1E1E2D]">
+            <label className="block text-xs font-semibold text-slate-300">Content Disclosures</label>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-slate-300">
+                Paid Partnership / Branded Content
+              </label>
+              <input
+                type="checkbox"
+                checked={ttBrandContent}
+                onChange={(e) => setTtBrandContent(e.target.checked)}
+                className="size-4 accent-violet-500 cursor-pointer"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-slate-300">
+                Promotes My Own Brand / Business
+              </label>
+              <input
+                type="checkbox"
+                checked={ttBrandOrganic}
+                onChange={(e) => setTtBrandOrganic(e.target.checked)}
+                className="size-4 accent-violet-500 cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Hashtags */}
       <div className="space-y-2">
