@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─────────────────────────────────────────
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS & TYPE VALIDATORS
     // ─────────────────────────────────────────
     
     function isAuthenticated() {
@@ -49,16 +49,55 @@ service cloud.firestore {
       return hasWorkspaceRole(workspaceId, ['owner', 'admin', 'editor', 'content_creator']);
     }
 
+    // Primitive Type Validators
+    function isString(val) {
+      return val is string;
+    }
+    
+    function isNumber(val) {
+      return val is int || val is float;
+    }
+    
+    function isBool(val) {
+      return val is bool;
+    }
+    
+    function isTimestamp(val) {
+      return val is timestamp;
+    }
+    
+    function isList(val) {
+      return val is list;
+    }
+    
+    function isNullableString(val) {
+      return val == null || val is string;
+    }
+
     // ─────────────────────────────────────────
     // USERS COLLECTION
     // ─────────────────────────────────────────
     match /users/{userId} {
       allow read: if isAuthenticated() && (isOwner(userId) || isPlatformAdmin());
-      allow create: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId) &&
+        request.resource.data.uid == userId &&
+        isString(request.resource.data.email) &&
+        isString(request.resource.data.displayName) &&
+        isNullableString(request.resource.data.photoURL) &&
+        request.resource.data.plan in ['free', 'creator', 'pro', 'agency'] &&
+        request.resource.data.role in ['user', 'admin'] &&
+        isString(request.resource.data.workspaceId) &&
+        isTimestamp(request.resource.data.createdAt);
+        
       allow update: if isAuthenticated() && isOwner(userId) &&
         // Prevent users from changing their own role or plan
         !('role' in request.resource.data.diff(resource.data).affectedKeys()) &&
-        !('plan' in request.resource.data.diff(resource.data).affectedKeys());
+        !('plan' in request.resource.data.diff(resource.data).affectedKeys()) &&
+        isString(request.resource.data.email) &&
+        isString(request.resource.data.displayName) &&
+        isNullableString(request.resource.data.photoURL) &&
+        isString(request.resource.data.workspaceId);
+        
       allow delete: if isPlatformAdmin();
 
       // User notifications subcollection
@@ -79,8 +118,19 @@ service cloud.firestore {
         resource.data.ownerId == request.auth.uid
       );
       // Anyone logged in can create a workspace (they automatically become the owner in the batch write)
-      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']);
+      allow create: if isAuthenticated() && request.resource.data.ownerId == request.auth.uid &&
+        isString(request.resource.data.id) &&
+        isString(request.resource.data.name) &&
+        isString(request.resource.data.slug) &&
+        isNullableString(request.resource.data.description) &&
+        isNullableString(request.resource.data.logoURL);
+        
+      allow update: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']) &&
+        isString(request.resource.data.name) &&
+        isString(request.resource.data.slug) &&
+        isNullableString(request.resource.data.description) &&
+        isNullableString(request.resource.data.logoURL);
+        
       allow delete: if isAuthenticated() && isWorkspaceOwner(workspaceId);
 
       // Members subcollection (Solves the chicken-and-egg problem)
@@ -91,8 +141,21 @@ service cloud.firestore {
           (request.auth.uid == memberId && request.resource.data.role == 'owner') ||
           // Or allow an existing owner/admin to create a member document
           hasWorkspaceRole(workspaceId, ['owner', 'admin'])
-        );
-        allow update: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']);
+        ) &&
+        request.resource.data.userId == memberId &&
+        isString(request.resource.data.email) &&
+        isString(request.resource.data.displayName) &&
+        isNullableString(request.resource.data.photoURL) &&
+        request.resource.data.role in ['owner', 'admin', 'editor', 'content_creator', 'viewer'] &&
+        request.resource.data.status in ['active', 'invited', 'removed'];
+        
+        allow update: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']) &&
+          isString(request.resource.data.email) &&
+          isString(request.resource.data.displayName) &&
+          isNullableString(request.resource.data.photoURL) &&
+          request.resource.data.role in ['owner', 'admin', 'editor', 'content_creator', 'viewer'] &&
+          request.resource.data.status in ['active', 'invited', 'removed'];
+          
         allow delete: if isAuthenticated() && (
           // Owners and admins can remove members
           hasWorkspaceRole(workspaceId, ['owner', 'admin']) ||
@@ -104,24 +167,108 @@ service cloud.firestore {
       // Posts subcollection
       match /posts/{postId} {
         allow read: if isAuthenticated() && isWorkspaceMember(workspaceId);
-        allow create: if isAuthenticated() && canEditWorkspace(workspaceId);
-        allow update: if isAuthenticated() && canEditWorkspace(workspaceId);
+        
+        allow create: if isAuthenticated() && canEditWorkspace(workspaceId) &&
+          isString(request.resource.data.title) &&
+          isString(request.resource.data.caption) &&
+          isList(request.resource.data.hashtags) &&
+          (request.resource.data.platform == null || request.resource.data.platform in ['TikTok', 'Instagram', 'YouTube', 'Facebook']) &&
+          isNullableString(request.resource.data.mediaURL) &&
+          (request.resource.data.mediaType == null || request.resource.data.mediaType in ['image', 'video']) &&
+          request.resource.data.status in ['Draft', 'Published', 'Failed'] &&
+          (!('ytMadeForKids' in request.resource.data) || isBool(request.resource.data.ytMadeForKids)) &&
+          (!('ytCategoryId' in request.resource.data) || isString(request.resource.data.ytCategoryId)) &&
+          (!('ttPrivacyLevel' in request.resource.data) || request.resource.data.ttPrivacyLevel in ['PUBLIC', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY']) &&
+          (!('ttAllowComment' in request.resource.data) || isBool(request.resource.data.ttAllowComment)) &&
+          (!('ttAllowDuet' in request.resource.data) || isBool(request.resource.data.ttAllowDuet)) &&
+          (!('ttAllowStitch' in request.resource.data) || isBool(request.resource.data.ttAllowStitch)) &&
+          (!('ttIsAigc' in request.resource.data) || isBool(request.resource.data.ttIsAigc)) &&
+          (!('ttBrandContent' in request.resource.data) || isBool(request.resource.data.ttBrandContent)) &&
+          (!('ttBrandOrganic' in request.resource.data) || isBool(request.resource.data.ttBrandOrganic));
+          
+        allow update: if isAuthenticated() && canEditWorkspace(workspaceId) &&
+          isString(request.resource.data.title) &&
+          isString(request.resource.data.caption) &&
+          isList(request.resource.data.hashtags) &&
+          (request.resource.data.platform == null || request.resource.data.platform in ['TikTok', 'Instagram', 'YouTube', 'LinkedIn', 'Facebook']) &&
+          isNullableString(request.resource.data.mediaURL) &&
+          (request.resource.data.mediaType == null || request.resource.data.mediaType in ['image', 'video']) &&
+          request.resource.data.status in ['Draft', 'Published', 'Failed'] &&
+          (!('ytMadeForKids' in request.resource.data) || isBool(request.resource.data.ytMadeForKids)) &&
+          (!('ytCategoryId' in request.resource.data) || isString(request.resource.data.ytCategoryId)) &&
+          (!('ttPrivacyLevel' in request.resource.data) || request.resource.data.ttPrivacyLevel in ['PUBLIC', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY']) &&
+          (!('ttAllowComment' in request.resource.data) || isBool(request.resource.data.ttAllowComment)) &&
+          (!('ttAllowDuet' in request.resource.data) || isBool(request.resource.data.ttAllowDuet)) &&
+          (!('ttAllowStitch' in request.resource.data) || isBool(request.resource.data.ttAllowStitch)) &&
+          (!('ttIsAigc' in request.resource.data) || isBool(request.resource.data.ttIsAigc)) &&
+          (!('ttBrandContent' in request.resource.data) || isBool(request.resource.data.ttBrandContent)) &&
+          (!('ttBrandOrganic' in request.resource.data) || isBool(request.resource.data.ttBrandOrganic));
+          
         allow delete: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin', 'editor']);
       }
 
       // Connected Social Accounts
       match /social_accounts/{accountId} {
         allow read: if isAuthenticated() && isWorkspaceMember(workspaceId);
-        allow create, update, delete: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']);
+        
+        allow create, update: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']) &&
+          isString(request.resource.data.id) &&
+          isString(request.resource.data.workspaceId) &&
+          request.resource.data.platform in ['facebook', 'instagram', 'tiktok', 'youtube'] &&
+          isString(request.resource.data.accountName) &&
+          isString(request.resource.data.accountId) &&
+          isString(request.resource.data.accessToken) &&
+          (!('refreshToken' in request.resource.data) || isString(request.resource.data.refreshToken)) &&
+          (!('scopes' in request.resource.data) || isList(request.resource.data.scopes)) &&
+          (request.resource.data.tokenExpiresAt == null || isTimestamp(request.resource.data.tokenExpiresAt)) &&
+          isNullableString(request.resource.data.profilePictureURL) &&
+          (request.resource.data.followerCount == null || isNumber(request.resource.data.followerCount));
+          
+        allow delete: if isAuthenticated() && hasWorkspaceRole(workspaceId, ['owner', 'admin']);
       }
 
       // Publishing Logs
       match /publishing_logs/{logId} {
         allow read: if isAuthenticated() && isWorkspaceMember(workspaceId);
+        
         // Direct writes are allowed for workspace creators
-        allow create: if isAuthenticated() && canEditWorkspace(workspaceId);
+        allow create: if isAuthenticated() && canEditWorkspace(workspaceId) &&
+          isString(request.resource.data.id) &&
+          isString(request.resource.data.workspaceId) &&
+          isString(request.resource.data.postId) &&
+          isString(request.resource.data.postTitle) &&
+          isString(request.resource.data.triggeredBy) &&
+          request.resource.data.platform in ['facebook', 'instagram', 'tiktok', 'youtube'] &&
+          isString(request.resource.data.socialAccountId) &&
+          isString(request.resource.data.accountName) &&
+          request.resource.data.status in ['success', 'failed', 'pending'] &&
+          (!('publishStatus' in request.resource.data) || request.resource.data.publishStatus in ['success', 'failed', 'processing']) &&
+          isNullableString(request.resource.data.platformPostId) &&
+          isNullableString(request.resource.data.platformPostUrl) &&
+          isNullableString(request.resource.data.errorCode) &&
+          isNullableString(request.resource.data.errorMessage) &&
+          isTimestamp(request.resource.data.attemptedAt) &&
+          (request.resource.data.completedAt == null || isTimestamp(request.resource.data.completedAt)) &&
+          (request.resource.data.durationMs == null || isNumber(request.resource.data.durationMs)) &&
+          isBool(request.resource.data.isMock) &&
+          (!('likeCount' in request.resource.data) || isNumber(request.resource.data.likeCount)) &&
+          (!('commentCount' in request.resource.data) || isNumber(request.resource.data.commentCount)) &&
+          (!('viewCount' in request.resource.data) || isNumber(request.resource.data.viewCount)) &&
+          (!('shareCount' in request.resource.data) || isNumber(request.resource.data.shareCount)) &&
+          (!('lastSyncedAt' in request.resource.data) || isTimestamp(request.resource.data.lastSyncedAt));
+          
         // Allow updates to publishStatus, completedAt, and analytics counts
-        allow update: if isAuthenticated() && isWorkspaceMember(workspaceId);
+        allow update: if isAuthenticated() && isWorkspaceMember(workspaceId) &&
+          request.resource.data.status in ['success', 'failed', 'pending'] &&
+          (!('publishStatus' in request.resource.data) || request.resource.data.publishStatus in ['success', 'failed', 'processing']) &&
+          (request.resource.data.completedAt == null || isTimestamp(request.resource.data.completedAt)) &&
+          (request.resource.data.durationMs == null || isNumber(request.resource.data.durationMs)) &&
+          (!('likeCount' in request.resource.data) || isNumber(request.resource.data.likeCount)) &&
+          (!('commentCount' in request.resource.data) || isNumber(request.resource.data.commentCount)) &&
+          (!('viewCount' in request.resource.data) || isNumber(request.resource.data.viewCount)) &&
+          (!('shareCount' in request.resource.data) || isNumber(request.resource.data.shareCount)) &&
+          (!('lastSyncedAt' in request.resource.data) || isTimestamp(request.resource.data.lastSyncedAt));
+          
         allow delete: if false;
       }
 
@@ -138,8 +285,14 @@ service cloud.firestore {
     // ─────────────────────────────────────────
     match /trends/{trendId} {
       allow read: if isAuthenticated();
-      // Only system actions can update/write trends
-      allow write: if false;
+      // Only system actions/admins can update/write trends
+      allow write: if isPlatformAdmin() &&
+        isString(request.resource.data.id) &&
+        isString(request.resource.data.topic) &&
+        isNumber(request.resource.data.trendScore) &&
+        isString(request.resource.data.growthRate) &&
+        request.resource.data.viralProbability in ['High', 'Medium', 'Low'] &&
+        isList(request.resource.data.contentAngles);
     }
 
     // ─────────────────────────────────────────
