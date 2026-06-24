@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -33,9 +33,35 @@ type MainTab = "posts" | "history";
 
 export default function PostsPage() {
   const { posts, loading, error, deletePost } = usePosts();
-  const { logs, logsLoading } = usePublishing();
+  const { logs, logsLoading, hasMore, isFetchingNext, fetchNextLogs } = usePublishing();
   const [mainTab, setMainTab] = useState<MainTab>("posts");
   const [activeTab, setActiveTab] = useState<PostStatus | "All">("All");
+
+  const observerTargetRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (mainTab !== "history" || !hasMore || isFetchingNext) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchNextLogs();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTargetRef.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [mainTab, hasMore, isFetchingNext, fetchNextLogs]);
 
   const filtered = activeTab === "All"
     ? posts
@@ -47,6 +73,7 @@ export default function PostsPage() {
     Published: posts.filter((p) => p.status === "Published").length,
     Failed:    posts.filter((p) => p.status === "Failed").length,
   };
+
 
   const safeDate = (ts: any) => {
     if (!ts) return "—";
@@ -225,13 +252,14 @@ export default function PostsPage() {
                             SIM
                           </span>
                         )}
-                        {log.status === "failed" && log.errorMessage && (
-                          <span className="text-[10px] text-red-400/80 truncate max-w-[200px]" title={log.errorMessage}>
-                            {log.errorCode}: {log.errorMessage}
+                        {log.status === "failed" && (
+                          <span className="text-[10px] text-red-400/80 truncate max-w-[200px]">
+                            Error
                           </span>
                         )}
                       </div>
                     </div>
+
 
                     {/* Platform */}
                     <div className="flex items-center gap-2 pr-8">
@@ -257,11 +285,39 @@ export default function PostsPage() {
                     </div>
                   </div>
                 ))}
+
+                {/* Loading Skeleton for Next Chunk */}
+                {isFetchingNext && (
+                  <>
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={`skeleton-${i}`}
+                        className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-0 px-5 py-4 bg-[#13131A] border-t border-[#1E1E2D] animate-pulse"
+                      >
+                        <div className="size-4 bg-slate-800 rounded-full" />
+                        <div className="pl-4 space-y-2">
+                          <div className="h-4 bg-slate-850 rounded w-1/3" />
+                          <div className="h-3 bg-slate-850 rounded w-1/4" />
+                        </div>
+                        <div className="h-4 bg-slate-850 rounded w-16 mr-8" />
+                        <div className="h-4 bg-slate-850 rounded w-20" />
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Infinite Scroll Trigger Anchor */}
+          {hasMore && !logsLoading && (
+            <div ref={observerTargetRef} className="py-6 flex justify-center">
+              <Loader2 className="size-5 animate-spin text-violet-500" />
             </div>
           )}
         </div>
       )}
+
     </div>
   );
 }
