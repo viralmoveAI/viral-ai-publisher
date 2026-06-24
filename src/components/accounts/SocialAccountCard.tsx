@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users, Calendar, AlertCircle } from "lucide-react";
+import { Users, Calendar } from "lucide-react";
 import { SocialAccount } from "@/lib/types/social.types";
 import { PlatformIcon } from "./PlatformIcons";
 import DisconnectAccountDialog from "./DisconnectAccountDialog";
@@ -12,7 +12,7 @@ interface SocialAccountCardProps {
 }
 
 export default function SocialAccountCard({ account, onDisconnect }: SocialAccountCardProps) {
-  const { id, platform, accountName, accountId, profilePictureURL, followerCount, connectedAt, tokenExpiresAt } = account;
+  const { id, platform, accountName, accountId, profilePictureURL, followerCount, connectedAt } = account;
 
   // Safe date formatting helper for Firestore Timestamp or Date objects
   const getFormattedDate = (val: any) => {
@@ -35,18 +35,6 @@ export default function SocialAccountCard({ account, onDisconnect }: SocialAccou
     }
   };
 
-  // Check if token is expiring soon (less than 7 days)
-  const isExpiringSoon = () => {
-    if (!tokenExpiresAt) return false;
-    try {
-      const expiryDate = tokenExpiresAt.toDate ? tokenExpiresAt.toDate() : new Date(tokenExpiresAt);
-      const diffTime = expiryDate.getTime() - Date.now();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays > 0 && diffDays <= 7;
-    } catch {
-      return false;
-    }
-  };
 
   // Follower count abbreviation helper
   const formatFollowers = (count: number | null) => {
@@ -146,19 +134,13 @@ export default function SocialAccountCard({ account, onDisconnect }: SocialAccou
 
       {/* Warnings & Action Row */}
       <div className="mt-5 pt-4 border-t border-[#1E1E2D] flex items-center justify-between gap-4">
-        {/* Expiry Warning */}
+        {/* Connection Status */}
         <div>
-          {isExpiringSoon() ? (
-            <div className="flex items-center gap-1.5 text-amber-400/90 text-xs bg-amber-500/5 px-2 py-1 rounded-lg border border-amber-500/10 animate-pulse">
-              <AlertCircle className="size-3.5" />
-              <span>Token expires soon</span>
-            </div>
-          ) : (
-            <div className="text-[10px] text-slate-600 bg-white/[0.01] px-2 py-1 rounded border border-white/[0.02] uppercase tracking-wider font-semibold">
-              Active Connection
-            </div>
-          )}
+          <div className="text-[10px] text-slate-600 bg-white/[0.01] px-2 py-1 rounded border border-white/[0.02] uppercase tracking-wider font-semibold">
+            Active Connection
+          </div>
         </div>
+
 
         {/* Disconnect dialog trigger */}
         <DisconnectAccountDialog
