@@ -7,12 +7,12 @@ import {
   orderBy,
   limit,
   where,
-  onSnapshot,
   addDoc,
   serverTimestamp,
   doc,
   updateDoc,
   getDocs,
+  startAfter,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/context/AuthContext";
@@ -26,10 +26,15 @@ export function usePublishing() {
   const [logsLoading, setLogsLoading] = useState(true);
   const [stats, setStats] = useState<WorkspaceStats | null>(null);
 
+  // Pagination states
+  const [lastVisibleDoc, setLastVisibleDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [isFetchingNext, setIsFetchingNext] = useState(false);
+
   const workspaceId: string | null = userProfile?.workspaceId || null;
 
-  // ─── Real-time publishing logs ────────────────────────────────────────────
-  useEffect(() => {
+  // ─── Fetch Initial Logs (First 8 items) ────────────────────────────────────
+  const fetchInitialLogs = async () => {
     if (!user || !workspaceId) {
       setLogs([]);
       setLogsLoading(false);
@@ -37,27 +42,70 @@ export function usePublishing() {
     }
 
     setLogsLoading(true);
-    const logsRef = collection(db, "workspaces", workspaceId, "publishing_logs");
-    const q = query(logsRef, orderBy("attemptedAt", "desc"), limit(50));
+    try {
+      const logsRef = collection(db, "workspaces", workspaceId, "publishing_logs");
+      const q = query(logsRef, orderBy("attemptedAt", "desc"), limit(8));
+      const snapshot = await getDocs(q);
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const result: PublishingLog[] = [];
-        snapshot.forEach((d) => {
-          result.push({ id: d.id, ...(d.data() as Omit<PublishingLog, "id">) });
-        });
-        setLogs(result);
-        setLogsLoading(false);
-      },
-      (err) => {
-        console.error("usePublishing logs error:", err);
-        setLogsLoading(false);
+      const result: PublishingLog[] = [];
+      snapshot.forEach((d) => {
+        result.push({ id: d.id, ...(d.data() as Omit<PublishingLog, "id">) });
+      });
+
+      setLogs(result);
+      if (snapshot.docs.length > 0) {
+        setLastVisibleDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === 8);
+      } else {
+        setLastVisibleDoc(null);
+        setHasMore(false);
       }
-    );
+    } catch (err) {
+      console.error("fetchInitialLogs error:", err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
 
-    return () => unsubscribe();
+  // ─── Fetch Next Logs (8 items per chunk) ───────────────────────────────────
+  const fetchNextLogs = async () => {
+    if (!user || !workspaceId || !lastVisibleDoc || !hasMore || isFetchingNext) return;
+
+    setIsFetchingNext(true);
+    try {
+      const logsRef = collection(db, "workspaces", workspaceId, "publishing_logs");
+      const q = query(
+        logsRef,
+        orderBy("attemptedAt", "desc"),
+        startAfter(lastVisibleDoc),
+        limit(8)
+      );
+      const snapshot = await getDocs(q);
+
+      const result: PublishingLog[] = [];
+      snapshot.forEach((d) => {
+        result.push({ id: d.id, ...(d.data() as Omit<PublishingLog, "id">) });
+      });
+
+      setLogs((prev) => [...prev, ...result]);
+      if (snapshot.docs.length > 0) {
+        setLastVisibleDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === 8);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("fetchNextLogs error:", err);
+    } finally {
+      setIsFetchingNext(false);
+    }
+  };
+
+  // Trigger initial fetch when user or workspace changes
+  useEffect(() => {
+    fetchInitialLogs();
   }, [user, workspaceId]);
+
 
   // ─── Publish a post ───────────────────────────────────────────────────────
   const publishPost = async (
@@ -156,6 +204,9 @@ export function usePublishing() {
       body: JSON.stringify({ workspaceId }),
     }).catch(console.error);
 
+    // Refresh history logs to include the new post log
+    fetchInitialLogs();
+
     return {
       success: result.success,
       errorMessage: result.errorMessage || undefined,
@@ -210,5 +261,17 @@ export function usePublishing() {
     return result;
   };
 
-  return { logs, logsLoading, stats, publishPost, fetchStats, workspaceId };
+  return { 
+    logs, 
+    logsLoading, 
+    stats, 
+    publishPost, 
+    fetchStats, 
+    workspaceId,
+    hasMore,
+    isFetchingNext,
+    fetchNextLogs,
+    refetchLogs: fetchInitialLogs
+  };
 }
+
