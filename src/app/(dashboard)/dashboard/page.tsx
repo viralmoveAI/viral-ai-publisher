@@ -170,9 +170,19 @@ export default function DashboardPage() {
           </div>
 
           {logsLoading && (
-            <div className="flex justify-center py-8">
-              <Loader2 className="size-5 animate-spin text-violet-500" />
-            </div>
+            Array.from({length: 5, }, (_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#1E1E2D] bg-[#0C0C12] hover:bg-[#161622] transition-colors group">
+                <div className="size-4 bg-white/10 animate-pulse rounded-full shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="h-3 w-1/2 bg-white/10 animate-pulse rounded-lg mb-1.5" />
+                  <div className="h-3 w-1/3 bg-white/10 animate-pulse rounded-lg" />
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="h-3 w-6 bg-white/10 animate-pulse rounded-lg" />
+                  <div className="h-3 w-8 bg-white/10 animate-pulse rounded-lg" />
+                </div>
+              </div>
+            ))
           )}
 
           {!logsLoading && recentLogs.length === 0 && (
