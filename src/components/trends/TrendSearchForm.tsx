@@ -5,6 +5,17 @@ import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+  ComboboxTrigger,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@/components/ui/combobox";
 
 interface TrendSearchFormProps {
   onSearch: (params: { niche: string; country: string; platform: string }) => void;
@@ -21,13 +32,21 @@ const COUNTRIES = [
   { code: "DE", name: "🇩🇪 Germany" },
   { code: "FR", name: "🇫🇷 France" },
 ];
-const PLATFORMS = ["General", "TikTok", "Instagram", "YouTube", "LinkedIn", "Facebook"];
+const PLATFORMS = ["General", "TikTok", "Instagram", "YouTube", "Facebook"];
 
 export default function TrendSearchForm({ onSearch, loading }: TrendSearchFormProps) {
   const [niche, setNiche] = useState("");
   const [country, setCountry] = useState("Global");
   const [platform, setPlatform] = useState("General");
   const [error, setError] = useState<string | null>(null);
+  const [countrySearch, setCountrySearch] = useState("");
+
+  const countryAnchorRef = useComboboxAnchor();
+  const platformAnchorRef = useComboboxAnchor();
+
+  const filteredCountries = COUNTRIES.filter((c) =>
+    c.name.toLowerCase().includes(countrySearch.toLowerCase())
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,19 +112,40 @@ export default function TrendSearchForm({ onSearch, loading }: TrendSearchFormPr
             <Label htmlFor="country" className="text-sm font-semibold text-slate-300">
               Target Country
             </Label>
-            <select
-              id="country"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              disabled={loading}
-              className="w-full h-10 rounded-md border border-border bg-[#13131A] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-200"
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <Combobox value={country} onValueChange={(val) => {
+              if (val) {
+                setCountry(val);
+                setCountrySearch(""); // Reset search on select
+              }
+            }} disabled={loading}>
+              <div ref={countryAnchorRef} className="w-full">
+                <ComboboxTrigger className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-[#13131A] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 disabled:opacity-50">
+                  <ComboboxValue placeholder="Select country...">
+                    {COUNTRIES.find((c) => c.code === country)?.name || country}
+                  </ComboboxValue>
+                </ComboboxTrigger>
+              </div>
+              <ComboboxContent anchor={countryAnchorRef} className="bg-[#13131A] border border-[#1E1E2D] min-w-[200px] p-1">
+                <input
+                  type="text"
+                  placeholder="Search country..."
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  className="w-[calc(100%-8px)] m-1 h-8 bg-[#0A0A0F] border border-[#1E1E2D] rounded px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                  disabled={loading}
+                />
+                {filteredCountries.length === 0 && (
+                  <div className="px-2 py-3 text-xs text-slate-500 text-center">No country found</div>
+                )}
+                <ComboboxList className="max-h-60 overflow-y-auto">
+                  {filteredCountries.map((c) => (
+                    <ComboboxItem key={c.code} value={c.code}>
+                      {c.name}
+                    </ComboboxItem>
+                  ))}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </div>
 
           {/* Social Platform Selection */}
@@ -113,19 +153,24 @@ export default function TrendSearchForm({ onSearch, loading }: TrendSearchFormPr
             <Label htmlFor="platform" className="text-sm font-semibold text-slate-300">
               Social Media Platform
             </Label>
-            <select
-              id="platform"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-              disabled={loading}
-              className="w-full h-10 rounded-md border border-border bg-[#13131A] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-200"
-            >
-              {PLATFORMS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+            <Combobox value={platform} onValueChange={(val) => val && setPlatform(val)} disabled={loading}>
+              <div ref={platformAnchorRef} className="w-full">
+                <ComboboxTrigger className="flex h-10 w-full items-center justify-between rounded-md border border-border bg-[#13131A] px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 disabled:opacity-50">
+                  <ComboboxValue placeholder="Select platform...">
+                    {platform}
+                  </ComboboxValue>
+                </ComboboxTrigger>
+              </div>
+              <ComboboxContent anchor={platformAnchorRef} className="bg-[#13131A] border border-[#1E1E2D] min-w-[200px]">
+                <ComboboxList className="max-h-60 overflow-y-auto">
+                  {PLATFORMS.map((p) => (
+                    <ComboboxItem key={p} value={p}>
+                      {p}
+                    </ComboboxItem>
+                  ))}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </div>
         </div>
       </div>
