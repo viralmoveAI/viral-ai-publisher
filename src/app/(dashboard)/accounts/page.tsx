@@ -64,11 +64,13 @@ function AccountsContent() {
         try {
           const endpoint = selectPlatform === "youtube" 
             ? "/api/auth/youtube/session"
-            : "/api/auth/facebook/session";
+            : selectPlatform === "tiktok"
+              ? "/api/auth/tiktok/session"
+              : "/api/auth/facebook/session";
           const res = await fetch(endpoint);
           if (res.ok) {
             const data = await res.json();
-            const loaded = selectPlatform === "youtube"
+            const loaded = (selectPlatform === "youtube" || selectPlatform === "tiktok")
               ? (data.account ? [data.account] : [])
               : (data.accounts || []);
             setCandidates(loaded);
@@ -107,8 +109,9 @@ function AccountsContent() {
         connectedAt: serverTimestamp(),
       };
 
-      if (candidate.platform === "youtube") {
+      if (candidate.platform === "youtube" || candidate.platform === "tiktok") {
         payload.refreshToken = candidate.refreshToken || null;
+        payload.scopes = candidate.scopes || [];
         if (candidate.expiresIn) {
           const expiryDate = new Date();
           expiryDate.setSeconds(expiryDate.getSeconds() + candidate.expiresIn);

@@ -41,9 +41,9 @@ export const PLATFORM_META: PlatformMeta[] = [
   {
     id: "tiktok",
     label: "TikTok",
-    color: "#000000",
-    available: false,
-    oauthPath: null,
+    color: "#fe5858ff",
+    available: true,
+    oauthPath: "/api/auth/tiktok",
   },
   {
     id: "youtube",

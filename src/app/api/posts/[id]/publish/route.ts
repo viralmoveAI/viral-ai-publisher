@@ -5,6 +5,7 @@ import { publishToInstagram } from "@/lib/services/social/instagram.service";
 import { publishVideoToTikTok } from "@/lib/services/social/tiktok.service";
 import { uploadVideoToYouTube } from "@/lib/services/social/youtube.service";
 import { refreshYouTubeAccessToken } from "@/lib/services/social/youtubeRefresh.service";
+import { refreshTikTokAccessToken } from "@/lib/services/social/tiktokRefresh.service";
 
 // Helper: simulate publishing with realistic random outcomes (fallback/mock mode)
 async function simulatePublish(platform: string): Promise<{
@@ -141,23 +142,35 @@ export async function POST(
         if (!mediaUrl || mediaType !== "video") {
           return NextResponse.json({ error: "TikTok content posting API requires a video file" }, { status: 400 });
         }
-        const ttRes = await publishVideoToTikTok(socialAccountId, decryptedToken, mediaUrl, caption || "", {
-          privacyLevel: ttPrivacyLevel,
-          allowComment: ttAllowComment,
-          allowDuet: ttAllowDuet,
-          allowStitch: ttAllowStitch,
-          isAigc: ttIsAigc,
-          brandContent: ttBrandContent,
-          brandOrganic: ttBrandOrganic
-        });
         
-        result = {
-          success: ttRes.success,
-          postId: ttRes.publishId,
-          errorCode: ttRes.error ? "TIKTOK_PUBLISH_ERROR" : undefined,
-          errorMessage: ttRes.error,
-          publishStatus: ttRes.success ? "processing" : "failed",
-        };
+        // Refresh token if expired
+        const refreshResult = await refreshTikTokAccessToken(workspaceId, socialAccountId);
+        if (refreshResult.error) {
+          result = {
+            success: false,
+            errorCode: "TIKTOK_REFRESH_ERROR",
+            errorMessage: refreshResult.error,
+            publishStatus: "failed",
+          };
+        } else {
+          const ttRes = await publishVideoToTikTok(socialAccountId, refreshResult.accessToken, mediaUrl, caption || "", {
+            privacyLevel: ttPrivacyLevel,
+            allowComment: ttAllowComment,
+            allowDuet: ttAllowDuet,
+            allowStitch: ttAllowStitch,
+            isAigc: ttIsAigc,
+            brandContent: ttBrandContent,
+            brandOrganic: ttBrandOrganic
+          });
+          
+          result = {
+            success: ttRes.success,
+            postId: ttRes.publishId,
+            errorCode: ttRes.error ? "TIKTOK_PUBLISH_ERROR" : undefined,
+            errorMessage: ttRes.error,
+            publishStatus: ttRes.success ? "processing" : "failed",
+          };
+        }
       } else if (cleanPlatform === "youtube") {
         if (!mediaUrl || mediaType !== "video") {
           return NextResponse.json({ error: "YouTube Data API requires a video file" }, { status: 400 });
