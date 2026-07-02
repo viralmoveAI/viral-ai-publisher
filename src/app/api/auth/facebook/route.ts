@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   const state = JSON.stringify({ workspaceId, platform });
   const encodedState = Buffer.from(state).toString("base64");
 
-  const fbAuthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
+  const fbAuthUrl = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
     redirectUri
   )}&scope=${scopes.join(",")}&state=${encodedState}`;
 
