@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, LayoutDashboard, Search, Bookmark, FileText, Share2, User as UserIcon, LogOut, Loader2 } from "lucide-react";
+import { Sparkles, LayoutDashboard, Search, Bookmark, FileText, Share2, User as UserIcon, LogOut, Loader2, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,12 +17,19 @@ export default function DashboardLayout({
   const { user, userProfile, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
+
+  // Close mobile menu on path changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   if (loading) {
     return (
@@ -47,14 +54,34 @@ export default function DashboardLayout({
   ];
 
   return (
-    <div className="flex h-screen bg-[#0A0A0F] text-slate-100 overflow-hidden">
-      {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-[#1E1E2D] bg-[#13131A] shrink-0">
-        <div className="flex items-center gap-2 h-16 px-6 border-b border-[#1E1E2D]">
-          <Sparkles className="size-5 text-violet-400" />
-          <span className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-            ViralAI <span className="text-violet-400">Publisher</span>
-          </span>
+    <div className="flex h-screen bg-[#0A0A0F] text-slate-100 overflow-hidden relative">
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-[#0A0A0F]/80 backdrop-blur-sm md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <aside 
+        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col w-64 border-r border-[#1E1E2D] bg-[#13131A] transition-transform duration-300 transform md:hidden ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between h-16 px-6 border-b border-[#1E1E2D]">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-5 text-violet-400" />
+            <span className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              ViralAI <span className="text-violet-400">Publisher</span>
+            </span>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-1 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white cursor-pointer"
+          >
+            <X className="size-5" />
+          </button>
         </div>
         
         <nav className="flex-1 space-y-1 px-4 py-6">
@@ -76,15 +103,82 @@ export default function DashboardLayout({
             );
           })}
         </nav>
+      </aside>
 
-        <div className="p-4 border-t border-[#1E1E2D]">
-          <button
-            onClick={logout}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer"
-          >
-            <LogOut className="size-4" />
-            Logout
-          </button>
+      {/* Desktop Sidebar */}
+      <aside className={`hidden md:flex flex-col border-r border-[#1E1E2D] bg-[#13131A] shrink-0 transition-all duration-350 ${
+        isSidebarCollapsed ? "w-20" : "w-64"
+      }`}>
+        <div className={`flex items-center h-16 border-b border-[#1E1E2D] px-6 ${
+          isSidebarCollapsed ? "justify-center px-0" : "gap-2"
+        }`}>
+          <Sparkles className="size-5 text-violet-400 shrink-0" />
+          {!isSidebarCollapsed && (
+            <span className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent truncate">
+              ViralAI <span className="text-violet-400">Publisher</span>
+            </span>
+          )}
+        </div>
+        
+        <nav className="flex-1 space-y-1 px-4 py-6 flex flex-col items-stretch">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                title={isSidebarCollapsed ? item.name : undefined}
+                className={`flex items-center rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isSidebarCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3"
+                } ${
+                  isActive
+                    ? "bg-violet-600/20 text-violet-400 border-l-2 border-violet-500 pl-3"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/20"
+                }`}
+              >
+                <item.icon className={`size-4 shrink-0 ${isActive ? "text-violet-400" : "text-slate-400"}`} />
+                {!isSidebarCollapsed && <span>{item.name}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-[#1E1E2D] flex items-center justify-between gap-2">
+          {!isSidebarCollapsed ? (
+            <>
+              <button
+                onClick={logout}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer flex-1"
+              >
+                <LogOut className="size-4 shrink-0" />
+                <span>Logout</span>
+              </button>
+              <button
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="p-2.5 rounded-lg hover:bg-slate-800/40 text-slate-400 hover:text-white cursor-pointer transition-all border border-transparent hover:border-white/5"
+                title="Collapse Sidebar"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-3 w-full">
+              <button
+                onClick={logout}
+                className="p-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer"
+                title="Logout"
+              >
+                <LogOut className="size-4 shrink-0" />
+              </button>
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="p-2.5 rounded-lg hover:bg-slate-800/40 text-slate-400 hover:text-white cursor-pointer transition-all border border-transparent hover:border-white/5"
+                title="Expand Sidebar"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -93,10 +187,19 @@ export default function DashboardLayout({
         {/* Top Header */}
         <header className="flex items-center justify-between h-16 px-6 border-b border-[#1E1E2D] bg-[#13131A]/50 backdrop-blur-md">
           <div className="md:hidden flex items-center gap-2">
-            <Sparkles className="size-5 text-violet-400" />
-            <span className="font-bold text-base bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-              ViralAI
-            </span>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg border border-white/10 bg-white/[0.02] cursor-pointer"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+            <div className="flex items-center gap-1.5 ml-1">
+              <Sparkles className="size-4.5 text-violet-400 animate-pulse" />
+              <span className="font-bold text-base bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                ViralAI
+              </span>
+            </div>
           </div>
 
           <div className="hidden md:block text-sm text-slate-400 font-medium">
@@ -132,14 +235,6 @@ export default function DashboardLayout({
                 </div>
               )}
             </Link>
-
-            <button
-              onClick={logout}
-              className="md:hidden p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
-              title="Logout"
-            >
-              <LogOut className="size-5" />
-            </button>
           </div>
         </header>
 

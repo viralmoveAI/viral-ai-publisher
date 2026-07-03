@@ -361,7 +361,7 @@ export default function ProfilePage() {
 
       {/* ── Security ────────────────────────────────────────────────────────── */}
       <SectionCard icon={KeyRound} title="Security" description="Manage your login credentials">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-slate-200">Password</p>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -370,7 +370,7 @@ export default function ProfilePage() {
           </div>
 
           {passwordSent ? (
-            <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+            <div className="flex items-center justify-center gap-2 text-emerald-400 text-sm font-medium py-2 sm:py-0">
               <CheckCircle2 className="size-4" />
               Email sent!
             </div>
@@ -378,7 +378,7 @@ export default function ProfilePage() {
             <button
               onClick={handlePasswordReset}
               disabled={passwordLoading}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#1E1E2D] bg-white/[0.02] hover:bg-white/[0.04] hover:border-violet-500/30 text-slate-300 hover:text-white text-sm font-medium transition-all cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-[#1E1E2D] bg-white/[0.02] hover:bg-white/[0.04] hover:border-violet-500/30 text-slate-300 hover:text-white text-sm font-medium transition-all cursor-pointer disabled:opacity-50 w-full sm:w-auto"
             >
               {passwordLoading ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -403,24 +403,24 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="px-6 py-5 flex items-center justify-between">
+        <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-slate-200">Sign out of ViralAI</p>
             <p className="text-xs text-slate-500 mt-0.5">You will be redirected to the login page.</p>
           </div>
 
           {logoutConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Are you sure?</span>
+            <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
+              <span className="text-xs text-slate-400 shrink-0">Are you sure?</span>
               <button
                 onClick={logout}
-                className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-white text-xs font-semibold transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial text-center px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-400 text-white text-xs font-semibold transition-all cursor-pointer"
               >
                 Yes, sign out
               </button>
               <button
                 onClick={() => setLogoutConfirm(false)}
-                className="px-3 py-1.5 rounded-lg border border-[#1E1E2D] text-slate-400 hover:text-white text-xs transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial text-center px-3 py-1.5 rounded-lg border border-[#1E1E2D] text-slate-400 hover:text-white text-xs transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -428,7 +428,7 @@ export default function ProfilePage() {
           ) : (
             <button
               onClick={() => setLogoutConfirm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 text-sm font-medium transition-all cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400 hover:text-red-300 text-sm font-medium transition-all cursor-pointer w-full sm:w-auto"
             >
               <LogOut className="size-4" />
               Sign Out
