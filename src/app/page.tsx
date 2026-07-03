@@ -1,8 +1,12 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
-import { Sparkles, ArrowRight, TrendingUp, ShieldCheck, Zap } from "lucide-react";
+import { Sparkles, ArrowRight, TrendingUp, ShieldCheck, Zap, Menu, X } from "lucide-react";
 
 export default function LandingPage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="relative min-h-screen bg-[#0A0A0F] text-slate-100 overflow-hidden flex flex-col font-sans">
       {/* Background glow elements */}
@@ -10,7 +14,7 @@ export default function LandingPage() {
       <div className="absolute top-[20%] right-[-10%] w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
       
       {/* Header */}
-      <header className="relative z-10 max-w-6xl mx-auto w-full flex items-center justify-between px-6 py-6 border-b border-white/[0.03]">
+      <header className="relative z-50 max-w-6xl mx-auto w-full flex items-center justify-between px-6 py-6 border-b border-white/[0.03]">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-violet-600/20 border border-violet-500/30">
             <Sparkles className="size-5 text-violet-400" />
@@ -20,7 +24,8 @@ export default function LandingPage() {
           </span>
         </div>
         
-        <div className="flex items-center gap-4">
+        {/* Desktop Buttons */}
+        <div className="hidden md:flex items-center gap-4">
           <Link 
             href="/login" 
             className="text-sm font-medium text-slate-300 hover:text-white transition-colors"
@@ -34,6 +39,36 @@ export default function LandingPage() {
             Get started
           </Link>
         </div>
+
+        {/* Hamburger Toggler (Mobile Only) */}
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="md:hidden p-2 rounded-lg border border-white/10 bg-white/[0.02] text-slate-305 hover:text-white transition-all cursor-pointer"
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+        </button>
+
+        {/* Mobile Dropdown Panel */}
+        {isMenuOpen && (
+          <div className="absolute top-[88px] left-6 right-6 bg-[#0E0E16]/95 border border-white/[0.05] p-5 rounded-2xl flex flex-col gap-3 z-50 md:hidden backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Nav items can be appended here in future phases */}
+            <Link 
+              href="/login" 
+              onClick={() => setIsMenuOpen(false)}
+              className="w-full text-center text-sm font-medium text-slate-300 hover:text-white transition-colors border border-white/10 py-2.5 rounded-xl bg-white/[0.01]"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setIsMenuOpen(false)}
+              className="w-full text-center text-sm font-semibold bg-violet-600 hover:bg-violet-500 text-white py-2.5 rounded-xl transition-all shadow-[0_0_15px_rgba(124,58,237,0.25)]"
+            >
+              Get started
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}

@@ -195,7 +195,7 @@ function AccountsContent() {
               return (
                 <div
                   key={platform.id}
-                  className={`relative overflow-hidden rounded-xl border p-4 transition-all duration-300 ${
+                  className={`relative overflow-hidden rounded-xl border p-4 transition-all duration-300 flex flex-col justify-between min-h-[120px] ${
                     platform.available
                       ? "border-[#1E1E2D] bg-[#13131A] hover:border-white/[0.06] hover:bg-[#161622]"
                       : "border-white/[0.02] bg-white/[0.01] opacity-60"
@@ -221,12 +221,12 @@ function AccountsContent() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-end">
+                  <div className="mt-4 flex items-center justify-end w-full">
                     {platform.available ? (
                       <button
                         onClick={() => handleRealConnect(platform.id, platform.oauthPath)}
                         disabled={fetchingSession}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer w-full sm:w-auto ${
                           isConnected
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : "bg-violet-600 hover:bg-violet-500 text-white"
@@ -245,7 +245,7 @@ function AccountsContent() {
                         )}
                       </button>
                     ) : (
-                      <span className="text-[10px] bg-white/[0.03] text-slate-500 px-2 py-1 rounded-md border border-white/[0.03]">
+                      <span className="text-[10px] bg-white/[0.03] text-slate-500 px-2 py-1 rounded-md border border-white/[0.03] w-full sm:w-auto text-center">
                         Soon
                       </span>
                     )}

@@ -167,12 +167,12 @@ export default function PostsPage() {
       {mainTab === "posts" && (
         <>
           {/* Status Filter */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-[#13131A] border border-[#1E1E2D] w-fit">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-[#13131A] border border-[#1E1E2D] w-full sm:w-fit overflow-x-auto no-scrollbar flex-nowrap">
             {STATUS_TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer shrink-0 ${
                   activeTab === tab
                     ? "bg-violet-600/20 text-violet-400 border border-violet-500/20"
                     : "text-slate-400 hover:text-slate-200"

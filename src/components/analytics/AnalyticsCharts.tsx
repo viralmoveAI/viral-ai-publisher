@@ -180,12 +180,12 @@ export default function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       </div>
 
       {/* Metric Selector Tabs */}
-      <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0C0C12] border border-[#1E1E2D] w-fit">
+      <div className="flex items-center gap-1 p-1 rounded-xl bg-[#0C0C12] border border-[#1E1E2D] w-full sm:w-fit overflow-x-auto no-scrollbar flex-nowrap">
         {metrics.map((m) => (
           <button
             key={m.key}
             onClick={() => setActiveMetric(m.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 ${
               activeMetric === m.key
                 ? "text-white font-semibold"
                 : "text-slate-500 hover:text-slate-300"
@@ -239,7 +239,7 @@ export default function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       </div>
 
       {/* Mini metric cards row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {metrics.map((m) => (
           <button
             key={m.key}

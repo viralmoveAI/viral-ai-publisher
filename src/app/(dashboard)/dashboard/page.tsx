@@ -109,15 +109,15 @@ export default function DashboardPage() {
           <p className="text-slate-400 max-w-xl text-base">
             Research viral niches, draft content, connect social channels, and publish — all from one workspace.
           </p>
-          <div className="flex items-center gap-3 pt-2">
-            <Link href="/trends">
-              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all cursor-pointer">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 w-full sm:w-auto">
+            <Link href="/trends" className="w-full sm:w-auto">
+              <button className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all cursor-pointer">
                 <TrendingUp className="size-4" />
                 Discover Trends
               </button>
             </Link>
-            <Link href="/posts/new">
-              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#1E1E2D] bg-white/[0.02] hover:bg-white/[0.04] text-slate-300 hover:text-white text-sm font-medium transition-all cursor-pointer">
+            <Link href="/posts/new" className="w-full sm:w-auto">
+              <button className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#1E1E2D] bg-white/[0.02] hover:bg-white/[0.04] text-slate-300 hover:text-white text-sm font-medium transition-all cursor-pointer">
                 <FileEdit className="size-4" />
                 New Post
               </button>
