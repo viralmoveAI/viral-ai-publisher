@@ -242,7 +242,7 @@ export default function PostForm({ existing }: PostFormProps) {
           {/* Made for Kids */}
           <div className="space-y-2">
             <label className="block text-xs font-semibold text-slate-300">Audience (COPPA Compliance) <span className="text-red-400">*</span></label>
-            <div className="flex items-center gap-4 text-sm text-slate-300">
+            <div className="flex flex-col md:flex-row md:items-center gap-4 text-sm text-slate-300">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -450,7 +450,7 @@ export default function PostForm({ existing }: PostFormProps) {
         </label>
 
         {mediaURL ? (
-          <div className="relative rounded-xl border border-[#1E1E2D] bg-[#0A0A0F] p-4 flex items-center justify-between">
+          <div className="relative rounded-xl border border-[#1E1E2D] bg-[#0A0A0F] p-4 flex items-center justify-between overflow-x-hidden">
             <div className="flex items-center gap-3">
               <div className="size-12 rounded-lg bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20 shrink-0">
                 {mediaType === "video" ? <Film className="size-6" /> : <Image className="size-6" />}
@@ -507,11 +507,11 @@ export default function PostForm({ existing }: PostFormProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-4 pt-2">
+      <div className="flex flex-col md:flex-row items-center justify-end gap-4 pt-2">
         <button
           type="submit"
           disabled={saving || uploading}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white text-sm font-semibold transition-all cursor-pointer"
+          className="w-full md:w-auto items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white text-sm font-semibold transition-all cursor-pointer"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
           {saving ? "Saving…" : isEditing ? "Save Changes" : "Save as Draft"}
@@ -519,7 +519,7 @@ export default function PostForm({ existing }: PostFormProps) {
         <button
           type="button"
           onClick={() => router.push("/posts")}
-          className="text-sm text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+          className="w-full md:w-auto text-sm text-slate-400 bg-[#1E1E2D] px-6 py-2.5 rounded-xl hover:text-slate-200 transition-colors cursor-pointer"
         >
           Cancel
         </button>

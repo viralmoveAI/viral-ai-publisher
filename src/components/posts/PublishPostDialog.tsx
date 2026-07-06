@@ -49,6 +49,11 @@ export default function PublishPostDialog({ post, accounts, onSuccess }: Publish
           description: `"${post.title}" was successfully published to ${selectedAccount.accountName}.`,
         });
         onSuccess?.();
+        setTimeout(() => {
+          setOpen(false);
+          setResult(null);
+          setSelectedAccountId("");
+        }, 1500);
       } else {
         toast.error("Publishing failed", {
           description: res.errorMessage || "An unexpected error occurred.",

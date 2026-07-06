@@ -204,7 +204,12 @@ export default function PostsPage() {
             <div className="space-y-6">
               <div className="grid gap-5 md:grid-cols-2">
                 {posts.map((post) => (
-                  <PostCard key={post.id} post={post} onDelete={deletePost} />
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    onDelete={deletePost}
+                    onPublishSuccess={() => fetchInitialPosts(activeTab)}
+                  />
                 ))}
               </div>
 

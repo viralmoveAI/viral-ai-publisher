@@ -99,6 +99,7 @@ function AccountsContent() {
       const docRef = doc(db, "workspaces", workspaceId, "social_accounts", candidate.accountId);
       
       const payload: any = {
+        id: candidate.accountId,
         workspaceId,
         platform: candidate.platform,
         accountName: candidate.accountName,
