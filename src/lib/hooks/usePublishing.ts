@@ -8,6 +8,7 @@ import {
   limit,
   where,
   addDoc,
+  setDoc,
   serverTimestamp,
   doc,
   updateDoc,
@@ -177,7 +178,9 @@ export function usePublishing() {
     });
 
     // 3. Write publishing log
-    await addDoc(collection(db, "workspaces", workspaceId, "publishing_logs"), {
+    const logRef = doc(collection(db, "workspaces", workspaceId, "publishing_logs"));
+    await setDoc(logRef, {
+      id: logRef.id,
       workspaceId,
       postId: post.id,
       postTitle: post.title,
