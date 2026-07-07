@@ -42,11 +42,16 @@ export default function LoginForm() {
       // This prevents the middleware from seeing an empty cookie and
       // bouncing the user back to /login.
       const idToken = await user.getIdToken();
-      await fetch("/api/auth/session", {
+      const response = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to establish secure session.");
+      }
 
       // Get callback URL or default to dashboard
       const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
