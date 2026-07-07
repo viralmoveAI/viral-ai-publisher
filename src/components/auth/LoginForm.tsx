@@ -50,7 +50,7 @@ export default function LoginForm() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || "Failed to establish secure session.");
+        throw new Error(errorData.error || "Failed to establish secure session.");
       }
 
       // Get callback URL or default to dashboard
