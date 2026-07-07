@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { verifySession } from "@/lib/firebase/verifySession";
 
 // Configure Cloudinary credentials from environment variables
 cloudinary.config({
@@ -11,6 +12,11 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await verifySession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
