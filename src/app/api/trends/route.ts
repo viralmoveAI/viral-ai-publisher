@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifySession } from "@/lib/firebase/verifySession";
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await verifySession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { niche, country, platform } = await request.json();
 
     if (!niche) {

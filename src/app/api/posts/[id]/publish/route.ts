@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decryptToken } from "@/lib/utils/encryption";
+import { verifySession } from "@/lib/firebase/verifySession";
 import { publishPhotoToFacebook, publishVideoToFacebook, publishTextToFacebook } from "@/lib/services/social/facebook.service";
 import { publishToInstagram } from "@/lib/services/social/instagram.service";
 import { publishVideoToTikTok } from "@/lib/services/social/tiktok.service";
@@ -48,6 +49,11 @@ export async function POST(
   const startTime = Date.now();
 
   try {
+    const session = await verifySession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id: postId } = await params;
     const body = await request.json();
     const { 

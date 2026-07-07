@@ -1,5 +1,6 @@
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 // Initialize Firebase Admin SDK for secure server-side operations
 if (!getApps().length) {
@@ -26,6 +27,9 @@ if (!getApps().length) {
 // Export the administrative Firestore reference
 const adminDb = getFirestore();
 
+// Export the administrative Auth reference for server-side token verification
+const adminAuth = getAuth();
+
 // Mock/Adapter to maintain compatibility with existing usages of admin.firestore.Timestamp
 const admin = {
   firestore: {
@@ -33,4 +37,4 @@ const admin = {
   },
 };
 
-export { admin, adminDb };
+export { admin, adminDb, adminAuth };

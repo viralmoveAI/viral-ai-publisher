@@ -36,7 +36,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           // Set session cookie
           const token = await currentUser.getIdToken();
-          document.cookie = `session=${token}; path=/; max-age=36000; SameSite=Lax; Secure`;
+          await fetch("/api/auth/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken: token }),
+          });
 
           // Fetch or create user profile in Firestore
           const userDocRef = doc(db, "users", currentUser.uid);
@@ -144,7 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else {
         // Clear session cookie
-        document.cookie = "session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax; Secure";
+        await fetch("/api/auth/session", { method: "DELETE" }).catch(console.error);
         setUserProfile(null);
       }
       
@@ -156,6 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      await fetch("/api/auth/session", { method: "DELETE" }).catch(console.error);
       await signOut(auth);
       router.push("/login");
     } catch (error) {

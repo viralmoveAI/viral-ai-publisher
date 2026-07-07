@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { admin, adminDb } from "@/lib/firebase/admin";
 import { decryptToken } from "@/lib/utils/encryption";
 import { refreshYouTubeAccessToken } from "@/lib/services/social/youtubeRefresh.service";
+import { verifySession } from "@/lib/firebase/verifySession";
 
 import { getFacebookPageStats, getFacebookPostStats } from "@/lib/services/social/facebook.service";
 import { getInstagramAccountStats, getInstagramMediaStats } from "@/lib/services/social/instagram.service";
@@ -10,6 +11,11 @@ import { getYouTubeChannelStats, getYouTubeVideoStats } from "@/lib/services/soc
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await verifySession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { workspaceId } = await request.json();
 
     if (!workspaceId) {
