@@ -39,8 +39,16 @@ export default function RegisterForm() {
     try {
       // Pass Omit<RegisterInput, "confirmPassword"> to the helper
       const { name, email, password } = data;
-      await registerWithEmail({ name, email, password });
-      
+      const user = await registerWithEmail({ name, email, password });
+
+      // Set the HttpOnly session cookie server-side BEFORE navigating.
+      const idToken = await user.getIdToken();
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
       router.push("/dashboard");
       router.refresh();
     } catch (err: any) {

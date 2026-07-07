@@ -36,8 +36,18 @@ export default function LoginForm() {
     setLoading(true);
     setError(null);
     try {
-      await loginWithEmail(data);
-      
+      const user = await loginWithEmail(data);
+
+      // Set the HttpOnly session cookie server-side BEFORE navigating.
+      // This prevents the middleware from seeing an empty cookie and
+      // bouncing the user back to /login.
+      const idToken = await user.getIdToken();
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
       // Get callback URL or default to dashboard
       const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
       router.push(callbackUrl);
