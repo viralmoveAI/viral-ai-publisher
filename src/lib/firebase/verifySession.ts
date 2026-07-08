@@ -6,7 +6,7 @@ export async function verifySession(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    return await adminAuth.verifySessionCookie(token);
+    return await adminAuth.verifySessionCookie(token,true);
   } catch (err) {
     return null;
   }
